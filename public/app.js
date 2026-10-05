@@ -2,7 +2,7 @@
 const $=q=>document.querySelector(q),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const L=ArkI18n;let language=localStorage.getItem('bot-ark-language')||'fr';if(!L.languages.includes(language))language='fr';
 const tr=k=>L.t(language,k);let me={loggedIn:false,role:null,guilds:[],bot:{}},state={},selectedGuild='',page='home',demo=false,ticketView=null,installPrompt=null,worker=null,aiReady=false,aiBusy=false;
-const nav=[['home','◈'],['quests','✧'],['pass','◇'],['tickets','▣'],['players','♙'],['seasons','◷'],['logs','≡'],['settings','⚙'],['assistant','✦'],['maps','⌖'],['recipes','⚗'],['shop','◆'],['rp','♜'],['lottery','🎟'],['minigames','🎮'],['interpol','⛨'],['partners','🤝'],['guide','?']];
+const nav=[['home','◈'],['interpol','⛨'],['partners','🤝'],['maps','⌖'],['recipes','⚗'],['shop','◆'],['rp','♜'],['lottery','🎟'],['minigames','🎮'],['quests','✧'],['pass','◇'],['tickets','▣'],['players','♙'],['seasons','◷'],['logs','≡'],['settings','⚙'],['assistant','✦'],['guide','?']];
 const adminPages=['players','seasons','logs','settings'];const isStaff=()=>demo||me.role==='owner'||me.role==='admin';
 const num=n=>new Intl.NumberFormat(language).format(n||0),date=d=>d?new Intl.DateTimeFormat(language,{dateStyle:'medium',timeStyle:'short'}).format(new Date(d)):'—';
 const button=(label,action,id='',kind='ghost small',write=false)=>`<button type="button" class="${kind}" data-action="${action}" data-id="${esc(id)}" ${demo&&write?'disabled':''}>${esc(tr(label))}</button>`;
