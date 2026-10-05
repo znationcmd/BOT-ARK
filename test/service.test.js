@@ -1,0 +1,28 @@
+const {test,before,after}=require('node:test');const assert=require('node:assert/strict');const {engine}=require('./helpers');const db=require('../src/db'),s=require('../src/service');
+const G='10000000000001',H='10000000000002',U='20000000000001',V='20000000000002';let season,q;
+before(async()=>{await db.init();await s.guild(G,'ARK A');await s.guild(H,'ARK B');await s.member(G,U,'Derek');await s.member(G,V,'Other');season=await s.createSeason(G,'owner',{name:'Season One',starts_at:new Date(Date.now()-86400000).toISOString(),ends_at:new Date(Date.now()+86400000).toISOString(),xp_per_tier:100,status:'published'});q=await s.createQuest(G,'owner',{season_id:season.id,title:'Tame Raptor',kind:'tame',target:'Raptor',goal:2,xp:200,period:'daily'});});
+after(async()=>{await db.close();await engine.close()});
+test('published seasons cannot overlap and guilds stay isolated',async()=>{await assert.rejects(s.createSeason(G,'owner',{name:'Overlap',starts_at:new Date(Date.now()).toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),xp_per_tier:100,status:'published'}),{code:'seasonOverlap'});assert.equal((await s.quests(H,U)).length,0);await assert.rejects(s.reviewClaim(H,'owner',1,true),{code:'notFound'});});
+test('unlinked events cannot award XP; linked events are deduplicated and complete once',async()=>{
+ const event=(id,player='game-a')=>({eventId:id,playerId:player,type:'tame',target:'Raptor',amount:1,occurredAt:new Date().toISOString()});
+ assert.equal((await s.ingest(G,'test',[event('unlinked')])).unlinked,1);assert.equal((await s.pass(G,U)).xp,0);
+ await s.updateMember(G,'owner',U,{game_id:'game-a',platform:'Xbox',verified:true,premium:false});await assert.rejects(s.updateMember(G,'owner',V,{game_id:'game-a',platform:'Xbox',verified:true,premium:false}),{code:'identityUsed'});
+ await s.ingest(G,'test',[event('tame-1')]);assert.equal((await s.quests(G,U))[0].progress,1);
+ assert.equal((await s.ingest(G,'test',[event('tame-1')])).duplicates,1);
+ assert.equal((await s.ingest(G,'test',[event('tame-2')])).completed,1);await s.ingest(G,'test',[event('tame-3')]);assert.equal((await s.pass(G,U)).xp,200);
+ await assert.rejects(s.claimQuest(G,U,q.id,'proof'),{code:'alreadyCompleted'});
+});
+test('manual quest validation is transactional and rewards cannot be claimed twice',async()=>{
+ const manual=await s.createQuest(G,'owner',{season_id:season.id,title:'Explore',kind:'explore',target:'',goal:1,xp:100,period:'weekly'});
+ const claim=await s.claimQuest(G,U,manual.id,'https://example.test/proof');await assert.rejects(s.claimQuest(G,U,manual.id,'second'),{code:'alreadyPending'});
+ await s.reviewClaim(G,'owner',claim.id,true);await assert.rejects(s.reviewClaim(G,'owner',claim.id,true),{code:'alreadyReviewed'});assert.equal((await s.pass(G,U)).xp,300);
+ const reward=await s.createReward(G,'owner',{season_id:season.id,tier:2,title:'Role',kind:'manual',premium:false});const premium=await s.createReward(G,'owner',{season_id:season.id,tier:2,title:'Premium',kind:'manual',premium:true});
+ await assert.rejects(s.claimReward(G,U,premium.id),{code:'rewardLocked'});const c=await s.claimReward(G,U,reward.id);await assert.rejects(s.claimReward(G,U,reward.id),{code:'alreadyClaimed'});await s.deliverReward(G,'owner',c.id);assert.equal((await s.pass(G,U)).rewards.find(r=>r.id===reward.id).claim_status,'delivered');
+ await s.updateMember(G,'owner',U,{game_id:'game-a',platform:'Xbox',verified:true,premium:true});await s.claimReward(G,U,premium.id);assert.equal((await s.pass(G,U)).premium,true);
+});
+test('tickets are private, reused while open and cannot accept messages after closure',async()=>{
+ const a=await s.openTicket(G,U,'Lost dinosaur');const b=await s.openTicket(G,U,'Second request');assert.equal(a.id,b.id);await assert.rejects(s.ticket(G,V,a.id,false),{code:'notFound'});await s.ticketMessage(G,U,'Derek',a.id,'Please help',false);assert.equal((await db.all('SELECT * FROM ark_ticket_messages WHERE ticket_id=$1',[a.id])).length,1);await s.closeTicket(G,U,a.id,false);await assert.rejects(s.ticketMessage(G,U,'Derek',a.id,'More',false),{code:'ticketClosed'});assert.notEqual((await s.openTicket(G,U,'New request')).id,a.id);
+});
+test('raw log duplicates do not award quest XP',async()=>{const before=(await s.pass(G,U)).xp;const text='[2026] A Raptor was tamed\n[2026] Tribe log';assert.equal((await s.rawLogs(G,'file',text)).added,2);assert.equal((await s.rawLogs(G,'file',text)).added,0);assert.equal((await s.pass(G,U)).xp,before)});
+test('next season starts with zero XP and no premium while historical records remain',async()=>{await s.archiveSeason(G,'owner',season.id);const next=await s.createSeason(G,'owner',{name:'Season Two',starts_at:new Date(Date.now()-1000).toISOString(),ends_at:new Date(Date.now()+86400000).toISOString(),xp_per_tier:100,status:'published'});const p=await s.pass(G,U);assert.equal(p.season.id,next.id);assert.equal(p.xp,0);assert.equal(p.premium,false);assert.equal((await db.one('SELECT xp,premium FROM ark_progress WHERE guild_id=$1 AND season_id=$2 AND user_id=$3',[G,season.id,U])).xp,300)});
+test('daily and weekly boundaries use UTC and event validation is strict',async()=>{assert.equal(s.periodKey({period:'daily'},new Date('2026-10-05T23:59:59Z')),'2026-10-05');assert.equal(s.periodKey({period:'weekly'},new Date('2026-10-11T23:59:59Z')),'week:2026-10-05');await assert.rejects(s.ingest(G,'test',[{eventId:'future',playerId:'game-a',type:'tame',amount:1,occurredAt:new Date(Date.now()+86400000).toISOString()}]),{code:'futureEvent'});assert.equal(await db.one('SELECT id FROM ark_events WHERE event_key=$1',['future']),undefined)});

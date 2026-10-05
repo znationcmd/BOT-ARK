@@ -1,0 +1,4 @@
+require('dotenv').config();
+const db=require('./db'),bot=require('./bot'),nitrado=require('./nitrado');
+async function main(){if(!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<24)throw Error('SESSION_SECRET requis (24 caractères minimum)');await db.init();const server=require('./app')().listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Dashboard BOT ARK disponible'));bot.start().catch(e=>console.error('Discord :',e.code||e.name));nitrado.start();let closing=false;async function stop(){if(closing)return;closing=true;nitrado.stop();bot.stop();server.close(async()=>{await db.close();process.exit(0)});setTimeout(()=>process.exit(0),10000).unref()}process.on('SIGTERM',stop);process.on('SIGINT',stop);}
+main().catch(e=>{console.error('BOT ARK démarrage :',e.code||e.message);process.exit(1)});

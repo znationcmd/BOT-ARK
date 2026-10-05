@@ -1,0 +1,10 @@
+const {z}=require('zod');
+const languages=['fr','en','de','es','it','ru'];
+const id=z.string().regex(/^\d{5,22}$/);
+const text=(n=120)=>z.string().trim().min(1).max(n);
+const season=z.object({name:text(),starts_at:z.string().datetime({offset:true}),ends_at:z.string().datetime({offset:true}),xp_per_tier:z.coerce.number().int().min(25).max(10000),status:z.enum(['draft','published']).default('draft')}).refine(s=>new Date(s.ends_at)>new Date(s.starts_at),{message:'invalidDates'});
+const quest=z.object({season_id:z.coerce.number().int().positive(),title:text(),description:z.string().max(2000).default(''),kind:z.enum(['tame','kill','boss','craft','build','explore','connect','custom']),target:z.string().max(100).default(''),goal:z.coerce.number().int().min(1).max(10000),xp:z.coerce.number().int().min(1).max(10000),period:z.enum(['daily','weekly','season'])});
+const reward=z.object({season_id:z.coerce.number().int().positive(),tier:z.coerce.number().int().min(1).max(1000),title:text(),description:z.string().max(2000).default(''),premium:z.boolean().default(false),kind:z.enum(['manual','role']).default('manual'),role_id:z.string().regex(/^\d{5,22}$/).optional().nullable()}).refine(v=>v.kind!=='role'||v.role_id,{message:'roleRequired'});
+const settings=z.object({language:z.enum(languages),staff_role_id:z.union([id,z.literal('')]).default(''),ticket_category_id:z.union([id,z.literal('')]).default(''),audit_channel_id:z.union([id,z.literal('')]).default(''),nitrado_service_id:z.string().regex(/^\d{0,20}$/).default(''),nitrado_log_path:z.string().max(300).default(''),nitrado_token:z.string().max(2000).optional()});
+const event=z.object({eventId:text(160),playerId:text(100),type:z.enum(['tame','kill','boss','craft','build','explore','connect']),target:z.string().max(100).default(''),amount:z.coerce.number().int().min(1).max(10000).default(1),occurredAt:z.string().datetime({offset:true})});
+module.exports={languages,id,text,season,quest,reward,settings,event,z};
