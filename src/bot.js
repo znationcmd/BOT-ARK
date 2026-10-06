@@ -1,8 +1,9 @@
-const {Client,GatewayIntentBits,PermissionFlagsBits:P,ChannelType,REST,Routes,SlashCommandBuilder,MessageFlags}=require('discord.js');
+const {Client,GatewayIntentBits,PermissionFlagsBits:P,ChannelType,REST,Routes,SlashCommandBuilder,MessageFlags,Partials}=require('discord.js');
 const db=require('./db'),s=require('./service'),vault=require('./crypto');
 const {t}=require('../public/locales');
 const {fail}=require('./errors');
 const discordTools=require('./discord-tools');
+const modules=require('./modules');
 let client=null,applicationId='',lastError=null,connecting=false;
 const langFrom=locale=>({fr:'fr',de:'de',it:'it',ru:'ru','es-ES':'es','es-419':'es'}[locale]||'en');
 const commandLocales={fr:'fr','en-US':'en','en-GB':'en',de:'de','es-ES':'es',it:'it',ru:'ru'};
@@ -14,7 +15,7 @@ function commands(){const b=name=>new SlashCommandBuilder().setName(name).setDMP
  desc(b('profil'),'players').addStringOption(o=>desc(o.setName('identifiant').setRequired(true).setMaxLength(100),'gameId')).addStringOption(o=>desc(o.setName('plateforme').setRequired(true),'platform').addChoices({name:'PC',value:'PC'},{name:'Xbox',value:'Xbox'},{name:'PlayStation',value:'PlayStation'})),
  desc(b('ticket'),'newTicket').addStringOption(o=>desc(o.setName('sujet').setRequired(true).setMaxLength(150),'subject')),
  desc(b('fermer'),'close').addIntegerOption(o=>desc(o.setName('id').setRequired(true),'tickets'))
- ].concat(discordTools.commands()).map(c=>c.toJSON())}
+ ].concat(discordTools.commands(),modules.commands()).map(c=>c.toJSON())}
 function status(){return {ready:Boolean(client?.isReady()),applicationId,username:client?.user?.username||null,guilds:client?.guilds.cache.size||0,error:lastError,connecting,inviteUrl:applicationId?`https://discord.com/oauth2/authorize?client_id=${applicationId}&permissions=268454928&integration_type=0&scope=bot+applications.commands`:null}}
 function installedGuilds(){if(!client?.isReady())return [];return [...client.guilds.cache.values()].map(g=>({id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,ownerId:g.ownerId,memberCount:g.memberCount||0,installed:true})).sort((a,b)=>a.name.localeCompare(b.name,'fr'))}
 function isManager(guild,member){return guild.ownerId===member.id||member.permissions.has(P.Administrator)||member.permissions.has(P.ManageGuild)}
@@ -30,6 +31,7 @@ async function mirrorMessage(ticket,name,body){if(!client?.isReady()||!ticket.ch
 async function deliverRole(claim){if(claim.reward.kind!=='role'||!client?.isReady())return false;const guild=await client.guilds.fetch(claim.guild_id);const role=await guild.roles.fetch(claim.reward.role_id);if(!role||role.managed||role.id===guild.id)fail('discordError');const member=await guild.members.fetch(claim.user_id);await member.roles.add(role);await s.deliverReward(claim.guild_id,'BOT ARK',claim.id);return true}
 async function onInteraction(i){if(!i.isChatInputCommand()||!i.guildId)return;await i.deferReply({flags:MessageFlags.Ephemeral});const g=i.guildId,user=i.user.id;await s.guild(g,i.guild.name);await s.member(g,user,i.user.username);const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[g])).config;const lang=config.language||langFrom(i.locale);const tr=key=>t(lang,key);const base=String(process.env.PUBLIC_BASE_URL||'').replace(/\/$/,'');let content='';
  try{
+ if(await modules.handle(i,client))return;
  switch(i.commandName){
  case 'dashboard':{const token=require('crypto').randomBytes(32).toString('base64url');const role=isManager(i.guild,{id:user,permissions:i.memberPermissions})?'admin':'player';await db.query('DELETE FROM ark_login_links WHERE expires_at<$1',[Date.now()]);await db.query('INSERT INTO ark_login_links VALUES($1,$2,$3,$4,$5,$6)',[s.sha(token),g,user,i.user.username,role,Date.now()+300000]);return i.editReply({content:tr('commandDashboard'),components:[{type:1,components:[{type:2,style:5,label:'Ouvrir mon Dashboard',url:base+'/#login='+token}]}]})}
  case 'quetes':{const rows=await s.quests(g,user);content=rows.length?rows.slice(0,15).map(q=>`**#${q.id} ${q.title}** — ${q.progress}/${q.goal} · ${q.xp} XP · ${tr(q.period)}${q.completed?' ✅':''}`).join('\n'):tr('noSeason');break}
@@ -52,11 +54,17 @@ async function start(credentials){if(connecting)fail('working');connecting=true;
  if(!token){const row=await db.one("SELECT value FROM ark_system WHERE key='discord'");if(row){const data=JSON.parse(vault.decrypt(row.value));token=data.token;id=data.clientId;}}
  if(!token||!id){lastError=null;return status()}
  const rest=new REST({version:'10'}).setToken(token);const app=await rest.get(Routes.oauth2CurrentApplication());if(app.id!==id)fail('discordError');
- const intents=[GatewayIntentBits.Guilds];if(process.env.DISCORD_MESSAGE_CONTENT==='true')intents.push(GatewayIntentBits.GuildMessages,GatewayIntentBits.MessageContent);
- candidate=new Client({intents});candidate.on('error',e=>console.error('Discord :',e.code||e.name));candidate.on('shardDisconnect',()=>{lastError='discordDisconnected';console.warn('Discord déconnecté — discord.js tente la reconnexion automatiquement')});candidate.on('shardResume',()=>{lastError=null;console.log('BOT ARK reconnecté à Discord')});candidate.on('invalidated',()=>{lastError='discordInvalidated';console.error('Session Discord invalidée — redémarrage de la connexion');setTimeout(()=>start().catch(()=>{}),5000).unref()});
+ const intents=[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildMessageReactions,GatewayIntentBits.GuildVoiceStates];
+ if(process.env.DISCORD_MESSAGE_CONTENT==='true')intents.push(GatewayIntentBits.MessageContent);
+ if(process.env.DISCORD_GUILD_MEMBERS==='true')intents.push(GatewayIntentBits.GuildMembers);
+ candidate=new Client({intents,partials:[Partials.Message,Partials.Channel,Partials.Reaction]});candidate.on('error',e=>console.error('Discord :',e.code||e.name));candidate.on('shardDisconnect',()=>{lastError='discordDisconnected';console.warn('Discord déconnecté — discord.js tente la reconnexion automatiquement')});candidate.on('shardResume',()=>{lastError=null;console.log('BOT ARK reconnecté à Discord')});candidate.on('invalidated',()=>{lastError='discordInvalidated';console.error('Session Discord invalidée — redémarrage de la connexion');setTimeout(()=>start().catch(()=>{}),5000).unref()});
  candidate.on('interactionCreate',i=>onInteraction(i).catch(e=>console.error('Commande Discord :',e.code||e.name)));
  candidate.on('guildCreate',g=>s.guild(g.id,g.name).catch(()=>{}));
- candidate.on('messageCreate',async m=>{if(m.author.bot||!m.guildId)return;try{const ticket=await db.one("SELECT * FROM ark_tickets WHERE channel_id=$1 AND status='open'",[m.channelId]);if(!ticket)return;const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[m.guildId]))?.config||{};const staff=isManager(m.guild,m.member)||m.member.roles.cache.has(config.staff_role_id);await s.ticketMessage(m.guildId,m.author.id,m.author.username,ticket.id,m.content,staff,m.id)}catch(e){console.error('Ticket Discord :',e.code||e.name)}});
+ candidate.on('guildMemberAdd',m=>modules.handleJoin(candidate,m).catch(e=>console.error('Arrivée Discord :',e.code||e.name)));
+ candidate.on('guildMemberRemove',m=>modules.handleLeave(candidate,m).catch(e=>console.error('Départ Discord :',e.code||e.name)));
+ candidate.on('voiceStateUpdate',(a,b)=>modules.handleVoice(candidate,a,b).catch(e=>console.error('Vocal temporaire :',e.code||e.name)));
+ candidate.on('messageReactionAdd',(r,u)=>modules.handleReaction(candidate,r,u).catch(e=>console.error('Starboard :',e.code||e.name)));
+ candidate.on('messageCreate',async m=>{if(m.author.bot||!m.guildId)return;try{await modules.handleMessage(candidate,m);const ticket=await db.one("SELECT * FROM ark_tickets WHERE channel_id=$1 AND status='open'",[m.channelId]);if(!ticket)return;const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[m.guildId]))?.config||{};const staff=isManager(m.guild,m.member)||m.member.roles.cache.has(config.staff_role_id);await s.ticketMessage(m.guildId,m.author.id,m.author.username,ticket.id,m.content,staff,m.id)}catch(e){console.error('Message Discord :',e.code||e.name)}});
  const ready=new Promise((resolve,reject)=>{readyTimeout=setTimeout(()=>reject(Error('timeout')),20000);candidate.once('clientReady',()=>{clearTimeout(readyTimeout);resolve()});});
  ready.catch(()=>{});await candidate.login(token);await ready;await rest.put(Routes.applicationCommands(id),{body:commands()});
  for(const g of candidate.guilds.cache.values())await s.guild(g.id,g.name);
@@ -66,4 +74,5 @@ async function start(credentials){if(connecting)fail('working');connecting=true;
 let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),15000);auditTimer.unref();
-module.exports={start,status,installedGuilds,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,stop:()=>{clearInterval(auditTimer);client?.destroy()}};
+const moduleTimer=setInterval(()=>modules.tick(client).catch(()=>{}),60000);moduleTimer.unref();
+module.exports={start,status,installedGuilds,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
