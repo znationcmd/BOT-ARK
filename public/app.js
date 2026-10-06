@@ -69,9 +69,82 @@ async function api(url,body,method=body?'POST':'GET'){
 function demoState(){const seasons={fr:'Saison 01 · L’éveil de l’île',en:'Season 01 · Island awakening',de:'Saison 01 · Erwachen der Insel',es:'Temporada 01 · El despertar de la isla',it:'Stagione 01 · Il risveglio dell’isola',ru:'Сезон 01 · Пробуждение острова'};const names={fr:['Apprivoise ton premier Raptor','Explore les ruines anciennes','Relève le défi des boss'],en:['Tame your first Raptor','Explore ancient ruins','Take on the boss challenge'],de:['Zähme deinen ersten Raptor','Erkunde alte Ruinen','Bestehe die Boss-Herausforderung'],es:['Domestica tu primer Raptor','Explora ruinas antiguas','Supera el desafío de jefes'],it:['Addomestica il primo Raptor','Esplora le rovine antiche','Affronta la sfida dei boss'],ru:['Приручи первого раптора','Исследуй древние руины','Пройди испытание боссов']};const now=Date.now();const season={id:1,name:seasons[language],starts_at:new Date(now-86400000*8).toISOString(),ends_at:new Date(now+86400000*22).toISOString(),xp_per_tier:100,status:'published'};const quests=names[language].map((title,i)=>({id:i+1,title,description:['Raptor','The Island','Broodmother'][i],kind:['tame','explore','boss'][i],period:['daily','weekly','season'][i],xp:[150,250,500][i],goal:[3,5,1][i],progress:[1,3,0][i],completed:false,season_id:1,enabled:true}));const rewards=Array.from({length:12},(_,i)=>({id:i+1,tier:Math.floor(i/2)+1,title:[tr('role')+' · Survivor',tr('premium')+' · Explorer'][i%2],description:tr(i%2?'manual':'role'),premium:Boolean(i%2),unlocked:i<8,claim_status:i<2?'delivered':null,kind:i%2?'manual':'role'}));return {season,seasons:[season],quests,allQuests:quests,rewards,pass:{season,xp:420,tier:4,premium:false,rewards},leaderboard:[{name:'Astrid',xp:1850},{name:'Derek',xp:1420},{name:'Ragnar',xp:1180},{name:'Freya',xp:960}],tickets:[{id:12,title:tr('newTicket'),user_id:'Derek',status:'open',created_at:new Date(now-3600000).toISOString()}],stats:{members:128,tickets:3,pending:5},claims:[],members:[{user_id:'10000000000001',name:'Derek',platform:'Xbox',game_id:'ARK-EXAMPLE',verified:true,premium:false}],audit:[],logs:[],rewardClaims:[]}}
 async function refresh(){if(demo){state=demoState();render();return}me=await api('/api/me');if(me.loggedIn){if(!selectedGuild)selectedGuild=me.guildId||me.guilds[0]?.id||'';if(selectedGuild)state=await api('/api/state');else state={};}render()}
 function navigation(){const keys=nav.filter(([key])=>!adminPages.includes(key)||isStaff());$('#nav').innerHTML=keys.map(([key,icon])=>`<a href="#${key}" class="${page===key?'active':''}"><span class="nav-icon" aria-hidden="true">${icon}</span>${esc(tr(key))}</a>`).join('');$('#install').textContent='↓ '+tr('install');$('#account').textContent=demo?tr('login'):me.loggedIn?tr('logout'):tr('login');$('#language').value=language;$('#page-title').textContent=tr(page);document.documentElement.lang=language;document.title=`BOT ARK · ${tr(page)}`;const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;if(!select.hidden){select.innerHTML=me.guilds.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}}
-function loginView(){return `<div class="login-layout"><section class="login-art"><img src="/logo.png" alt="BOT ARK — Valhalla Extinction"><h1>${esc(tr('welcome'))}</h1><p>${esc(tr('quests'))} · ${esc(tr('pass'))} · ${esc(tr('tickets'))}</p></section><section class="login-card"><div class="eyebrow">VALHALLA EXTINCTION</div><h2>${esc(tr('connectDiscord'))}</h2><p>${esc(tr('discordLoginGuide'))}</p><div class="notice teal">Discord sécurisé · utilise la commande <strong>/dashboard</strong> dans ton serveur pour recevoir ton accès privé.</div><div class="login-divider"></div><h3>${esc(tr('ownerLogin'))}</h3><form id="login-form"><label class="field">${esc(tr('username'))}<input name="username" autocomplete="username" required></label><label class="field">${esc(tr('password'))}<input name="password" type="password" autocomplete="current-password" required></label><div class="form-error" id="login-error" role="alert"></div><button class="primary">${esc(tr('login'))}</button></form><div class="login-divider"></div>${button('preview','demo','','ghost preview-button')}</section></div>`}
+function loginView(){
+ const publicTools=[
+  ['maps','⌖','Cartes ARK','Cartes officielles et moddés · groupes et repères','cartes exploration'],
+  ['recipes','⚗','Recettes','Kibble, composants, cuisine et fabrication','recettes survie'],
+  ['quests','✧','Quêtes','Défis communautaires et progression','quetes saison'],
+  ['pass','◇','Season Pass','Récompenses et niveaux saisonniers','saison rewards'],
+  ['assistant','✦','IA ARK','Aide dinos, ressources, cartes et serveur','ia aide'],
+  ['guide','?','Guide & PWA','Installation mobile, PC et configuration','guide pwa']
+ ];
+ const cards=publicTools.map(([key,icon,title,desc,tags])=>`<button class="portal-card" type="button" data-action="demo-nav" data-id="${key}" data-search="${esc((title+' '+desc+' '+tags).toLowerCase())}" data-tags="${esc(tags)}"><span class="portal-card-icon">${icon}</span><span><strong>${esc(title)}</strong><small>${esc(desc)}</small></span><span class="portal-arrow">›</span></button>`).join('');
+ return `<section class="modmap-home modmap-public">
+   <div class="portal-center">
+    <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
+    <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
+    <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <p class="modmap-subtitle">VALHALLA EXTINCTION · Dashboard communautaire ARK</p>
+    <div class="system-pill"><span></span>SYSTÈME ACTIF</div>
+   </div>
+   <div class="modmap-toolbar">
+    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="saison">Saison</option><option value="ia">IA</option><option value="guide">Guide</option></select></label>
+    <label class="portal-search"><span>⌕</span><input id="portal-search" autocomplete="off" placeholder="Rechercher un outil…"></label>
+   </div>
+   <div id="portal-grid" class="portal-grid">${cards}</div>
+   <div id="portal-empty" class="portal-empty" hidden>Aucun outil trouvé.</div>
+   <div class="portal-connect">
+    <div><div class="eyebrow">ACCÈS SERVEUR</div><h2>Connecte ton serveur Discord</h2><p>Pour gérer les joueurs, tickets, quêtes, saisons, économie et paramètres du bot.</p></div>
+    <form id="login-form" class="portal-login-form">
+      <input name="username" autocomplete="username" placeholder="${esc(tr('username'))}" required>
+      <input name="password" type="password" autocomplete="current-password" placeholder="${esc(tr('password'))}" required>
+      <div class="form-error" id="login-error" role="alert"></div>
+      <button class="primary">Connexion propriétaire</button>
+    </form>
+    <div class="portal-connect-actions">
+      <button type="button" class="ghost" data-action="demo">Aperçu du Dashboard</button>
+      <a class="portal-discord" href="https://discord.gg/53EKbkKvyn" target="_blank" rel="noopener">Rejoindre Discord ↗</a>
+    </div>
+   </div>
+ </section>`;
+}
 function questCard(q){return `<article class="quest-card"><div class="card-top"><span class="quest-icon" aria-hidden="true">${({tame:'♜',kill:'✦',boss:'♛',craft:'⚒',build:'⌂',explore:'◈',connect:'◉'})[q.kind]||'✧'}</span>${pill(q.period)}</div><h3>${esc(q.title)}</h3><p>${esc(q.description||tr(q.kind))}</p><div class="card-bottom"><div class="progress-info"><span>${esc(tr('progress'))}</span><span>${num(q.progress)} / ${num(q.goal)}</span></div>${progress(q.progress,q.goal)}<div class="card-actions"><span class="xp-tag">+${num(q.xp)} XP</span>${q.completed?pill('completed','teal'):button('submitProof','claim-quest',q.id,'ghost small',true)}</div></div></article>`}
-function homeView(){const p=state.pass||{tier:0,xp:0},stats=state.stats||{};return `${head('home',button('refresh','refresh'))}<section class="hero"><div><div class="eyebrow">${esc(tr('seasonCurrent'))}</div><h2 class="hero-title">${esc(state.season?.name||tr('noSeason'))}</h2><p>${state.season?esc(tr('ends'))+' · '+esc(date(state.season.ends_at)):esc(tr('guideSeasons'))}</p><div class="hero-actions">${button('quests','navigate','quests','primary')}${button('pass','navigate','pass')}</div></div><img class="hero-logo" src="/icon-512.png" alt="BOT ARK"></section><div class="grid stats"><article class="stat"><div class="stat-label">${esc(tr('tier'))}</div><strong>${num(p.tier)} <span class="suffix">${num(p.xp)} XP</span></strong></article><article class="stat"><div class="stat-label">${esc(tr('members'))}</div><strong>${num(stats.members)}</strong></article><article class="stat"><div class="stat-label">${esc(tr('tickets'))}</div><strong>${num(stats.tickets)} <span class="suffix">${esc(tr('open'))}</span></strong></article><article class="stat"><div class="stat-label">${esc(tr('quests'))}</div><strong>${num(stats.pending)} <span class="suffix">${esc(tr('pending'))}</span></strong></article></div><div class="grid two">${panel('quests',(state.quests||[]).slice(0,3).map(q=>`<div class="list-row"><div class="row-left"><span class="rank">✧</span><div><span class="row-name">${esc(q.title)}</span><span class="row-small">${num(q.progress)}/${num(q.goal)} · ${esc(tr(q.period))}</span></div></div><span class="xp-tag">+${num(q.xp)} XP</span></div>`).join('')||empty(),button('view','navigate','quests'))}${panel('leaderboard',leaderboard())}</div>`}
+function homeView(){
+ const p=state.pass||{tier:0,xp:0},stats=state.stats||{};
+ const tools=[
+  ['maps','⌖','Cartes ARK','Cartes officielles et moddés, groupes et repères','cartes exploration'],
+  ['recipes','⚗','Recettes','Kibble, composants, cuisine et fabrication','recettes survie'],
+  ['shop','◆','Shop','Boutique RP et packs communautaires','shop rp'],
+  ['rp','♜','Économie RP','Banque, métiers, factions et monnaie','rp economie'],
+  ['quests','✧','Quêtes','Défis quotidiens, hebdo et saisonniers','quetes saison'],
+  ['pass','◇','Season Pass','Niveaux, XP et récompenses','saison rewards'],
+  ['tickets','▣','Tickets','Support joueurs et suivi des demandes','support tickets'],
+  ['assistant','✦','IA ARK','Assistant dinos, ressources, cartes et serveur','ia aide'],
+  ['guide','?','Guide & PWA','Installation mobile, PC et configuration','guide pwa']
+ ];
+ const cards=tools.map(([key,icon,title,desc,tags])=>`<button class="portal-card" type="button" data-action="navigate" data-id="${key}" data-search="${esc((title+' '+desc+' '+tags).toLowerCase())}" data-tags="${esc(tags)}"><span class="portal-card-icon">${icon}</span><span><strong>${esc(title)}</strong><small>${esc(desc)}</small></span><span class="portal-arrow">›</span></button>`).join('');
+ return `<section class="modmap-home">
+   <div class="portal-center">
+    <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
+    <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
+    <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <p class="modmap-subtitle">VALHALLA EXTINCTION · ${esc(state.season?.name||tr('noSeason'))}</p>
+    <div class="system-pill"><span></span>${me.bot?.ready?'BOT DISCORD CONNECTÉ':'SYSTÈME ACTIF'}</div>
+   </div>
+   <div class="modmap-toolbar">
+    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="rp">RP</option><option value="saison">Saison</option><option value="support">Support</option><option value="ia">IA</option></select></label>
+    <label class="portal-search"><span>⌕</span><input id="portal-search" autocomplete="off" placeholder="Rechercher un outil…"></label>
+   </div>
+   <div id="portal-grid" class="portal-grid">${cards}</div>
+   <div id="portal-empty" class="portal-empty" hidden>Aucun outil trouvé.</div>
+   <div class="portal-stats">
+     <div><span>Niveau</span><strong>${num(p.tier)}</strong><small>${num(p.xp)} XP</small></div>
+     <div><span>Membres</span><strong>${num(stats.members)}</strong><small>communauté</small></div>
+     <div><span>Tickets</span><strong>${num(stats.tickets)}</strong><small>ouverts</small></div>
+     <div><span>Quêtes</span><strong>${num(stats.pending)}</strong><small>en attente</small></div>
+   </div>
+ </section>`;
+}
 function recipesView(){const cats=['Toutes',...new Set(ARK_RECIPES.map(r=>r.cat))];const card=r=>`<article class="quest-card ark-recipe-card" data-cat="${esc(r.cat)}" data-search="${esc((r.name+' '+r.cat+' '+r.ingredients).toLowerCase())}"><span class="quest-icon">⚗</span><span class="pill teal">${esc(r.cat)}</span><h3>${esc(r.name)}</h3><p>${esc(r.ingredients)}</p></article>`;return head('recipes')+`<section class="panel"><div class="panel-head"><div><h2>Catalogue des recettes ARK</h2><p class="muted">${ARK_RECIPES.length} recettes et composants intégrés, avec recherche et catégories.</p></div></div><div class="tabs">${cats.map((x,i)=>`<button class="${i===0?'primary':'ghost'} small ark-recipe-filter" data-recipe-filter="${esc(x)}">${esc(x)}</button>`).join('')}</div><div class="reference-search"><input id="ark-recipe-search" placeholder="Rechercher une recette, un ingrédient…" autocomplete="off"></div><div id="ark-recipe-grid" class="grid section-gap">${ARK_RECIPES.map(card).join('')}</div><div id="ark-recipe-empty" class="empty" hidden>Aucune recette trouvée.</div></section>`}
 function shopView(){const items=[['Starter Survivor',500],['Kit Construction',1200],['Kit Exploration',1800],['Dino Starter',2500],['Pack Tribe',5000]];return head('shop')+'<section class="panel"><p class="muted">Boutique RP par serveur · livraison automatique uniquement quand une intégration serveur compatible est configurée.</p><div class="grid">'+items.map(x=>'<article class="reward-card"><span class="reward-symbol">◆</span><h3>'+esc(x[0])+'</h3><p class="xp-tag">'+num(x[1])+' crédits</p><button class="primary small" disabled>Configurer la livraison</button></article>').join('')+'</div></section>'}
 function rpView(){return head('rp')+'<div class="grid two">'+panel('bank','<div class="stat"><div class="stat-label">Solde RP</div><strong>0 <span class="suffix">crédits</span></strong></div>')+panel('rp','<div class="list-row"><div><b>Banque & économie</b><br><span class="muted">Comptes joueurs, transactions et salaires.</span></div></div><div class="list-row"><div><b>Métiers & factions</b><br><span class="muted">Tribus, entreprises, police/admin et rôles personnalisés.</span></div></div><div class="list-row"><div><b>Shop</b><br><span class="muted">Achats reliés à la monnaie RP.</span></div></div>')+'</div>'}
@@ -153,6 +226,7 @@ async function action(action,id){
  switch(action){
  case 'navigate':location.hash=id;break;
  case 'demo':demo=true;selectedGuild='demo';me={...me,role:'owner'};state=demoState();location.hash='home';await render();break;
+ case 'demo-nav':demo=true;selectedGuild='demo';me={...me,role:'owner'};state=demoState();location.hash=id||'home';await render();break;
  case 'refresh':await refresh();break;
  case 'modal-close':$('#modal').close();break;
  case 'map-detail':mapDetailView(id);break;
@@ -183,7 +257,8 @@ function showTicket(){const r=ticketView;openModal('tickets',`<h3>#${r.id} · ${
 function bindForm(selector,fn){const form=$(selector);if(form)form.onsubmit=async e=>{e.preventDefault();e.submitter.disabled=true;try{await fn(new FormData(form));toast(tr('saved'));await refresh()}catch(err){const error=form.querySelector('.form-error');if(error)error.textContent=tr(err.message);else toast(tr(err.message),true)}finally{if(e.submitter)e.submitter.disabled=false}}}
 function bindRecipeCatalog(){const input=$('#ark-recipe-search'),grid=$('#ark-recipe-grid');if(!input||!grid)return;let filter='Toutes';const apply=()=>{const q=input.value.trim().toLowerCase();let shown=0;grid.querySelectorAll('.ark-recipe-card').forEach(card=>{const okCat=filter==='Toutes'||card.dataset.cat===filter;const okText=!q||card.dataset.search.includes(q);card.hidden=!(okCat&&okText);if(!card.hidden)shown++});const empty=$('#ark-recipe-empty');if(empty)empty.hidden=shown>0};input.oninput=apply;document.querySelectorAll('.ark-recipe-filter').forEach(b=>b.onclick=()=>{filter=b.dataset.recipeFilter;document.querySelectorAll('.ark-recipe-filter').forEach(x=>x.className='ghost small ark-recipe-filter');b.className='primary small ark-recipe-filter';apply()});apply()}
 function bindMapCatalog(){const input=$('#ark-map-search'),grid=$('#ark-map-grid');if(!input||!grid)return;let filter='all';const apply=()=>{const q=input.value.trim().toLowerCase();let shown=0;grid.querySelectorAll('.ark-map-card').forEach(card=>{const okKind=filter==='all'||card.dataset.kind===filter;const okText=!q||card.dataset.search.includes(q);card.hidden=!(okKind&&okText);if(!card.hidden)shown++});const empty=$('#ark-map-empty');if(empty)empty.hidden=shown>0};input.oninput=apply;document.querySelectorAll('.ark-map-filter').forEach(b=>b.onclick=()=>{filter=b.dataset.mapFilter;document.querySelectorAll('.ark-map-filter').forEach(x=>x.className='ghost small ark-map-filter');b.className='primary small ark-map-filter';apply()});apply()}
-function bindForms(){bindMapCatalog();bindRecipeCatalog();bindForm('#login-form',async f=>{demo=false;selectedGuild='';await api('/api/login',Object.fromEntries(f))});bindForm('#guild-form',f=>api('/api/guilds',Object.fromEntries(f)));bindForm('#discord-form',f=>api('/api/setup/discord',Object.fromEntries(f)));bindForm('#settings-form',f=>api('/api/settings',Object.fromEntries(f)));const ai=$('#ai-form');if(ai)ai.onsubmit=e=>{e.preventDefault();if(!aiReady||aiBusy)return;const question=new FormData(ai).get('question');aiMessages.push({role:'user',content:question});aiBusy=true;render();worker.postMessage({type:'ask',question,language})}}
+function bindPortalCatalog(){const input=$('#portal-search'),select=$('#portal-tag'),grid=$('#portal-grid');if(!grid)return;const apply=()=>{const q=(input?.value||'').trim().toLowerCase(),tag=select?.value||'';let shown=0;grid.querySelectorAll('.portal-card').forEach(card=>{const okText=!q||(card.dataset.search||'').includes(q),okTag=!tag||(card.dataset.tags||'').includes(tag);card.hidden=!(okText&&okTag);if(!card.hidden)shown++});const empty=$('#portal-empty');if(empty)empty.hidden=shown!==0};if(input)input.oninput=apply;if(select)select.onchange=apply;apply()}
+function bindForms(){bindPortalCatalog();bindMapCatalog();bindRecipeCatalog();bindForm('#login-form',async f=>{demo=false;selectedGuild='';await api('/api/login',Object.fromEntries(f))});bindForm('#guild-form',f=>api('/api/guilds',Object.fromEntries(f)));bindForm('#discord-form',f=>api('/api/setup/discord',Object.fromEntries(f)));bindForm('#settings-form',f=>api('/api/settings',Object.fromEntries(f)));const ai=$('#ai-form');if(ai)ai.onsubmit=e=>{e.preventDefault();if(!aiReady||aiBusy)return;const question=new FormData(ai).get('question');aiMessages.push({role:'user',content:question});aiBusy=true;render();worker.postMessage({type:'ask',question,language})}}
 function startAI(){if(aiReady)return;toast(tr('loading'));if(!worker){worker=new Worker('/ai-worker.js',{type:'module'});worker.onmessage=({data})=>{if(data.type==='ready'){aiReady=true;toast(tr('aiReady'));render()}else if(data.type==='answer'){aiBusy=false;aiMessages.push({role:'ai',content:data.answer});if(page==='assistant')render()}else if(data.type==='progress'){const status=$('#ai-status');if(status)status.textContent=data.progress?num(Math.round(data.progress))+' %':tr('loading')}else if(data.type==='error'){aiBusy=false;aiReady=false;worker?.terminate();worker=null;toast(tr('aiError'),true);if(page==='assistant')render()}};worker.onerror=()=>{aiBusy=false;worker?.terminate();worker=null;aiReady=false;toast(tr('aiError'),true)}}worker.postMessage({type:'load',language})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});
 $('#menu').onclick=()=>{document.body.classList.toggle('nav-open');$('#shade').hidden=!document.body.classList.contains('nav-open')};$('#shade').onclick=()=>{document.body.classList.remove('nav-open');$('#shade').hidden=true};
