@@ -6,7 +6,7 @@ const safeConfig=c=>{const {nitrado_token_enc,webhook_secret_hash,...safe}=c;ret
 function app(){
  const app=express();app.set('trust proxy',1);app.use(helmet({contentSecurityPolicy:false}));app.use(express.json({limit:'1100kb'}));
  app.use(session({secret:process.env.SESSION_SECRET,store:new Store(),resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:365*86400000}}));
- app.use((req,res,next)=>{if(req.path.startsWith('/api/'))res.set('Cache-Control','no-store');if(['POST','PATCH','PUT','DELETE'].includes(req.method)&&req.headers.origin){try{if(new URL(req.headers.origin).host!==req.get('host'))fail('forbidden',403)}catch(e){return next(e)}}next()});
+ app.use((req,res,next)=>{const shared=req.path.startsWith('/api/top-servers');if(req.path.startsWith('/api/'))res.set('Cache-Control','no-store');if(shared){res.set('Access-Control-Allow-Origin','*');res.set('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.set('Access-Control-Allow-Headers','Content-Type');if(req.method==='OPTIONS')return res.sendStatus(204)}if(!shared&&['POST','PATCH','PUT','DELETE'].includes(req.method)&&req.headers.origin){try{if(new URL(req.headers.origin).host!==req.get('host'))fail('forbidden',403)}catch(e){return next(e)}}next()});
  const route=(method,url,...handlers)=>app[method](url,...handlers.map(asyncRoute));
  const login=async(req,res,next)=>{if(!req.session.user)fail('unauthorized',401);if(req.session.role!=='owner'&&Date.now()-(req.session.checkedAt||0)>300000){await bot.verify(req.session.guildId,req.session.user,req.session.role);req.session.checkedAt=Date.now()}next()};
  const staff=(req,res,next)=>{if(!['owner','admin'].includes(req.session.role))fail('forbidden',403);next()};
