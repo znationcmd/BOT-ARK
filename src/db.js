@@ -84,6 +84,50 @@ CREATE TABLE IF NOT EXISTS shared_top_server_votes(
  UNIQUE(server_id,voter_hash,vote_day)
 );
 CREATE INDEX IF NOT EXISTS shared_top_server_votes_rank_idx ON shared_top_server_votes(server_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS ark_premium_codes(
+ id BIGSERIAL PRIMARY KEY,
+ code_hash TEXT UNIQUE NOT NULL,
+ product TEXT NOT NULL,
+ billing TEXT NOT NULL,
+ duration_days INTEGER NOT NULL,
+ max_servers INTEGER NOT NULL DEFAULT 0,
+ created_by TEXT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ used_by TEXT,
+ used_guild TEXT,
+ used_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS ark_premium_subscriptions(
+ id BIGSERIAL PRIMARY KEY,
+ guild_id TEXT NOT NULL,
+ user_id TEXT NOT NULL,
+ product TEXT NOT NULL,
+ starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ expires_at TIMESTAMPTZ NOT NULL,
+ source_code_id BIGINT REFERENCES ark_premium_codes(id),
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ark_premium_subscriptions_active_idx ON ark_premium_subscriptions(guild_id,user_id,product,expires_at DESC);
+CREATE TABLE IF NOT EXISTS ark_premium_servers(
+ id BIGSERIAL PRIMARY KEY,
+ guild_id TEXT NOT NULL,
+ label TEXT NOT NULL,
+ service_id TEXT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ UNIQUE(guild_id,service_id)
+);
+CREATE TABLE IF NOT EXISTS ark_payment_requests(
+ id TEXT PRIMARY KEY,
+ guild_id TEXT NOT NULL,
+ user_id TEXT NOT NULL,
+ product TEXT NOT NULL,
+ billing TEXT NOT NULL,
+ amount_cents INTEGER NOT NULL,
+ reference TEXT UNIQUE NOT NULL,
+ status TEXT NOT NULL DEFAULT 'pending',
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ validated_at TIMESTAMPTZ
+);
 
 `);console.log('BOT ARK : Postgres prêt')}
 module.exports={query,one,all,tx,init,close:()=>pool?.end()};
