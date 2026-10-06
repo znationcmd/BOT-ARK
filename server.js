@@ -1,5 +1,11 @@
 import express from "express";import{Client,GatewayIntentBits,EmbedBuilder}from"discord.js";
-const app=express();app.use(express.json());app.use(express.static("public"));
+const app=express();app.use(express.json());
+app.get("/apple-touch-icon.png",(q,s)=>{s.set("Cache-Control","no-cache");s.sendFile(process.cwd()+"/public/apple-touch-icon-v9.png")});
+app.get("/apple-touch-icon-precomposed.png",(q,s)=>{s.set("Cache-Control","no-cache");s.sendFile(process.cwd()+"/public/apple-touch-icon-v9.png")});
+app.get("/favicon.ico",(q,s)=>{s.set("Cache-Control","no-cache");s.sendFile(process.cwd()+"/public/icon-192.png")});
+app.get("/manifest.webmanifest",(q,s,n)=>{s.set("Cache-Control","no-store");n()});
+app.get("/sw.js",(q,s,n)=>{s.set("Cache-Control","no-store");n()});
+app.use(express.static("public"));
 const maps=["The Island","The Center","Scorched Earth","Aberration","Extinction","Genesis Part 1","Genesis Part 2","Crystal Isles","Lost Island","Fjordur","Ragnarok","Valguero","Astraeos","Club ARK","Forglar","Amissa","Althemia Magic Ground","Appalachia","Arkis","Arkopolis Free","Atlantis","Bjarnheim","Dark Abyss Dome","Dragon Topía","Eden Premium","EliteArk Arena","EliteArk: Deadzone","Enclave: Survival Skyward","Epiphany","ExtinctionOverGrowth"];
 const modules=["Season Pass","Quêtes","Tickets & loterie","Mini-jeux","Banque RP","Shop","Dinos","Ressources","Recettes","Cartes & groupes","IA ARK","Support"];
 app.get("/health",(q,s)=>s.json({ok:true,name:"BOT ARK"}));app.get("/api/config",(q,s)=>s.json({maps,modules,languages:["fr","en","de","it","es","ru"],discord:"https://discord.gg/53EKbkKvyn"}));
