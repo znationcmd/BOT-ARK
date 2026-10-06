@@ -179,3 +179,53 @@ aside#sidebar{
   .mobile-guild-strip .guild-bubble{width:43px;height:43px;min-width:43px;min-height:43px;flex-basis:43px}
   .workspace{padding-top:calc(var(--draft-header) + 62px + env(safe-area-inset-top,0px))!important}
 }
+
+
+/* DraftBot clean mobile menu v7 */
+@media(max-width:1100px){
+  .mobile-guild-strip{display:none!important}
+  .workspace{
+    margin-left:0!important;
+    padding-top:calc(var(--draft-header) + env(safe-area-inset-top,0px))!important;
+  }
+  .guild-rail{
+    left:0!important;
+    width:68px!important;
+    opacity:0!important;
+    pointer-events:none!important;
+    visibility:hidden!important;
+    transform:translateX(-100%)!important;
+    transition:transform .20s ease,opacity .20s ease!important;
+  }
+  aside#sidebar{
+    left:68px!important;
+    width:min(330px,calc(100vw - 68px))!important;
+    opacity:0!important;
+    pointer-events:none!important;
+    visibility:hidden!important;
+    transform:translateX(calc(-100% - 68px))!important;
+    transition:transform .20s ease,opacity .20s ease!important;
+  }
+  body.nav-open .guild-rail{
+    opacity:1!important;pointer-events:auto!important;visibility:visible!important;
+    transform:translateX(0)!important;
+  }
+  body.nav-open aside#sidebar{
+    opacity:1!important;pointer-events:auto!important;visibility:visible!important;
+    transform:translateX(0)!important;
+  }
+  #shade[hidden]{display:none!important}
+  body.nav-open #shade{
+    display:block!important;
+    position:fixed!important;
+    inset:calc(var(--draft-header) + env(safe-area-inset-top,0px)) 0 0 0!important;
+    background:#0008!important;
+    z-index:40!important;
+  }
+  .guild-bubble{border-radius:50%!important}
+  .guild-bubble.active{border-radius:50%!important}
+}
+@media(max-width:520px){
+  .guild-rail{width:64px!important}
+  aside#sidebar{left:64px!important;width:calc(100vw - 64px)!important}
+}
