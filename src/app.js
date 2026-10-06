@@ -56,6 +56,15 @@ function app(){
  route('post','/api/webhook/:guild',async(req,res)=>{const id=v.id.parse(req.params.guild);const row=await db.one('SELECT config FROM ark_guilds WHERE id=$1',[id]);const supplied=s.sha(String(req.headers.authorization||'').replace(/^Bearer /,''));const expected=row?.config.webhook_secret_hash;if(!expected||!crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))fail('unauthorized',401);res.json(await s.ingest(id,'webhook',req.body.events))});
  route('get','/api/nitrado/services',login,staff,scope,async(req,res)=>res.json(await nitrado.services(req.g)));
  route('post','/api/nitrado/poll',login,staff,scope,async(req,res)=>res.json(await nitrado.poll(req.g)));
+ route('get','/api/premium/plans',async(req,res)=>res.json({paypalUrl:premium.PAYPAL_URL,plans:premium.PLANS}));
+ route('get','/api/premium',login,scope,async(req,res)=>res.json(await premium.status(req.g,actor(req))));
+ route('post','/api/premium/payment-request',login,scope,async(req,res)=>res.json(await premium.requestPayment(req.g,actor(req),String(req.body.product||''),String(req.body.billing||''))));
+ route('post','/api/premium/redeem',login,scope,async(req,res)=>res.json(await premium.redeem(req.g,actor(req),String(req.body.code||''))));
+ route('post','/api/premium/servers',login,scope,async(req,res)=>res.json(await premium.registerServer(req.g,actor(req),req.body.label,req.body.serviceId)));
+ route('delete','/api/premium/servers/:id',login,scope,async(req,res)=>res.json(await premium.removeServer(req.g,req.params.id)));
+ route('get','/api/premium/admin',login,owner,scope,async(req,res)=>res.json(await premium.admin(req.g)));
+ route('post','/api/premium/admin/code',login,owner,async(req,res)=>res.json(await premium.generateCode(actor(req),String(req.body.product||''),String(req.body.billing||''))));
+ route('post','/api/premium/admin/approve/:id',login,owner,async(req,res)=>res.json(await premium.approvePayment(actor(req),req.params.id)));
  route('post','/api/setup/discord',login,owner,async(req,res)=>{const clientId=v.id.parse(req.body.clientId),token=v.text(300).parse(req.body.token);res.json(await bot.start({clientId,token}))});
  app.use(express.static(path.join(__dirname,'..','public'),{maxAge:0,etag:true}));
  app.use((err,req,res,next)=>{console.error('BOT ARK API :',err.code||err.name);if(res.headersSent)return next(err);const isValidation=err.name==='ZodError';const code=isValidation?(err.issues?.find(i=>i.code==='custom')?.message||'invalidInput'):err.status?err.code:'error';res.status(isValidation?400:err.status||500).json({error:code})});
