@@ -18,7 +18,7 @@ async function activeSubscription(g,user,product){
 }
 async function status(g,user){
  const [multi,battle,servers]=await Promise.all([activeSubscription(g,user,'multiserver'),activeSubscription(g,user,'battlepass'),db.all('SELECT * FROM ark_premium_servers WHERE guild_id=$1 ORDER BY id',[g])]);
- return {paypalUrl:PAYPAL_URL,plans:PLANS,multiserver:multi||null,battlepass:battle||null,maxServers:multi?20:1,servers,complimentary:complimentary(user)};
+ const freeOwner=complimentary(user);return {paypalUrl:PAYPAL_URL,plans:PLANS,multiserver:multi||null,battlepass:battle||null,maxServers:freeOwner?null:(multi?20:1),unlimitedServers:freeOwner,servers,complimentary:freeOwner};
 }
 async function requestPayment(g,user,product,billing){
  const p=plan(product,billing),id=crypto.randomUUID(),reference=`VAL-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -55,9 +55,9 @@ async function redeem(g,user,code){
  });
 }
 async function registerServer(g,user,label,serviceId){
- const multi=await activeSubscription(g,user,'multiserver'),limit=multi?20:1;
+ const ownerUnlimited=complimentary(user),multi=await activeSubscription(g,user,'multiserver'),limit=ownerUnlimited?null:(multi?20:1);
  const count=Number((await db.one('SELECT COUNT(*)::int AS c FROM ark_premium_servers WHERE guild_id=$1',[g]))?.c||0);
- if(count>=limit)fail(multi?'premiumServerLimit':'premiumRequired',403);
+ if(limit!==null&&count>=limit)fail(multi?'premiumServerLimit':'premiumRequired',403);
  const service=String(serviceId||'').trim();if(!/^\d{1,20}$/.test(service))fail('invalidInput',400);
  const name=String(label||('ARK #'+service)).trim().slice(0,100);
  return db.one('INSERT INTO ark_premium_servers(guild_id,label,service_id) VALUES($1,$2,$3) ON CONFLICT(guild_id,service_id) DO UPDATE SET label=EXCLUDED.label RETURNING *',[g,name,service]);
