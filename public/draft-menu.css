@@ -80,3 +80,40 @@ aside#sidebar{
 }
 
 .refresh-button{font-size:1.35rem;font-weight:900;line-height:1}.refresh-button:disabled{opacity:.55;cursor:wait}
+
+.draft-mobile-header{display:none}
+@media(max-width:1100px){
+ :root{--draft-header:88px}
+ .draft-mobile-header{
+   position:fixed;left:0;right:0;top:0;height:calc(var(--draft-header) + env(safe-area-inset-top,0px));
+   padding-top:env(safe-area-inset-top,0px);z-index:70;display:flex;align-items:center;justify-content:space-between;
+   background:#202428;border-bottom:1px solid #30363a;box-shadow:0 6px 18px #0005
+ }
+ .draft-mobile-header>button{width:58px;height:58px;border:0;background:transparent;color:var(--teal);font-size:31px;display:grid;place-items:center;padding:0}
+ .draft-mobile-header>img{width:48px;height:48px;object-fit:contain}
+ .draft-grid{grid-template-columns:repeat(2,13px)!important;grid-template-rows:repeat(2,13px)!important;gap:5px!important}
+ .draft-grid i{display:block;width:13px;height:13px;border-radius:2px;background:var(--teal)}
+ .guild-rail{
+   top:calc(var(--draft-header) + env(safe-area-inset-top,0px))!important;
+   bottom:auto!important;height:calc(100dvh - var(--draft-header) - env(safe-area-inset-top,0px))!important;
+   padding-top:14px!important
+ }
+ aside#sidebar{
+   top:calc(var(--draft-header) + env(safe-area-inset-top,0px))!important;
+   bottom:auto!important;height:calc(100dvh - var(--draft-header) - env(safe-area-inset-top,0px))!important;
+   width:min(330px,calc(84vw - 76px))!important;background:#303538!important
+ }
+ #shade{top:calc(var(--draft-header) + env(safe-area-inset-top,0px))!important}
+ .workspace{padding-top:calc(var(--draft-header) + env(safe-area-inset-top,0px))!important}
+ .topbar{display:none!important}
+ aside#sidebar .brand{display:none!important}
+ .server-context{padding-top:16px!important}
+ .module-search{background:#252a2e!important;border-color:#3a4146!important}
+ .draft-nav-group h3{color:#8c9499!important}
+ #nav .draft-nav-group a{min-height:47px!important;border-radius:8px!important;color:#d1d5d7!important}
+ #nav .draft-nav-group a.active{background:#3b4145!important}
+}
+@media(max-width:520px){
+ aside#sidebar{left:66px!important;width:min(315px,calc(88vw - 66px))!important}
+ .guild-rail{width:66px!important}
+}
