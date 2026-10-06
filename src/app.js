@@ -42,6 +42,9 @@ function app(){
  route('post','/api/tickets/:id/message',login,scope,async(req,res)=>{const message=await s.ticketMessage(req.g,actor(req),req.session.name,req.params.id,String(req.body.body||''),req.session.role!=='player');const ticket=await s.ticket(req.g,actor(req),req.params.id,true);try{await bot.mirrorMessage(ticket,req.session.name,message.body)}catch(e){await s.audit(req.g,'BOT ARK','ticket.mirror_pending',{id:ticket.id})}res.json(message)});
  route('post','/api/tickets/:id/close',login,scope,async(req,res)=>{const row=await s.closeTicket(req.g,actor(req),req.params.id,req.session.role!=='player');await bot.closeTicketChannel(row).catch(()=>{});res.json({ok:true})});
  route('get','/api/economy',login,scope,async(req,res)=>res.json(await s.economy(req.g,actor(req))));
+ route('post','/api/rp/profile',login,scope,async(req,res)=>res.json(await s.saveRpProfile(req.g,actor(req),req.body||{})));
+ route('post','/api/economy/transfer',login,scope,async(req,res)=>res.json(await s.transferCredits(req.g,actor(req),String(req.body.userId||''),req.body.amount)));
+ route('post','/api/economy/credit',login,staff,scope,async(req,res)=>res.json(await s.grantCredits(req.g,actor(req),String(req.body.userId||''),req.body.amount)));
  route('post','/api/shop/items',login,staff,scope,async(req,res)=>res.json(await s.addShopItem(req.g,actor(req),req.body)));
  route('post','/api/shop/:id/buy',login,scope,async(req,res)=>res.json(await s.buyShopItem(req.g,actor(req),req.params.id)));
  route('post','/api/lottery/ticket',login,scope,async(req,res)=>res.json(await s.lotteryTicket(req.g,actor(req))));
