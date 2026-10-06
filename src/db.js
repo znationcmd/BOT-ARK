@@ -13,6 +13,24 @@ async function one(sql,args){return (await all(sql,args))[0]}
 async function tx(fn){if(context.getStore())return fn();const client=await connect().connect();try{await client.query('BEGIN');const result=await context.run(client,fn);await client.query('COMMIT');return result}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
 async function init(){await query(`
 CREATE TABLE IF NOT EXISTS ark_system(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ark_module_settings(
+ guild_id TEXT NOT NULL,
+ module_key TEXT NOT NULL,
+ enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ config JSONB NOT NULL DEFAULT '{}',
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(guild_id,module_key)
+);
+CREATE TABLE IF NOT EXISTS ark_module_records(
+ id TEXT PRIMARY KEY,
+ guild_id TEXT NOT NULL,
+ module_key TEXT NOT NULL,
+ user_id TEXT NOT NULL DEFAULT '',
+ data JSONB NOT NULL DEFAULT '{}',
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ark_module_records_idx ON ark_module_records(guild_id,module_key,created_at DESC);
 CREATE TABLE IF NOT EXISTS ark_guilds(id TEXT PRIMARY KEY,name TEXT NOT NULL,config JSONB NOT NULL DEFAULT '{}');
 CREATE TABLE IF NOT EXISTS ark_members(guild_id TEXT NOT NULL REFERENCES ark_guilds(id),user_id TEXT NOT NULL,name TEXT NOT NULL,game_id TEXT,platform TEXT NOT NULL DEFAULT 'PC',verified BOOLEAN NOT NULL DEFAULT false,PRIMARY KEY(guild_id,user_id));
 CREATE UNIQUE INDEX IF NOT EXISTS ark_unique_game_id ON ark_members(guild_id,game_id) WHERE verified AND game_id IS NOT NULL;
