@@ -86,7 +86,7 @@ async function handle(i,ctx){
  }
  if(i.commandName==='minijeu'){const game=i.options.getString('jeu',true),answer=i.options.getString('reponse');const r=await s.playMiniGame(g,u,game,answer===null?undefined:answer);if(r.question)return reply('🎮 '+r.question+'\nRelance la commande avec reponse:...');return reply((r.correct?'✅ Bonne réponse':'❌ Mauvaise réponse')+(r.reward?' · +'+r.reward+' crédits':''));}
  if(i.commandName==='premium'){
-  if(sub==='statut'){const st=await premium.status(g,u);return reply('⭐ Multi-serveur : '+(st.multiserver?'actif':'inactif')+' · Battle Pass : '+(st.battlepass?'actif':'inactif')+' · Serveurs : '+(st.unlimitedServers?'illimités':st.servers.length+'/'+st.maxServers));}
+  if(sub==='statut'){const owner=await isProjectOwner(i,client),st=await premium.status(g,owner?'owner':u);return reply('⭐ Multi-serveur : '+(st.multiserver?'actif':'inactif')+' · Battle Pass : '+(st.battlepass?'actif':'inactif')+' · Serveurs : '+(st.unlimitedServers?'illimités':st.servers.length+'/'+st.maxServers)+(owner?' · offert propriétaire à vie':''));}
   if(sub==='activer'){const r=await premium.redeem(g,u,i.options.getString('code',true));return reply('✅ Premium activé jusqu’au '+new Date(r.expires_at).toLocaleString('fr-FR'));}
   if(!await isProjectOwner(i,client))throw new Error('forbidden');const r=await premium.generateCode(u,i.options.getString('produit',true),i.options.getString('duree',true));return reply('✅ Code généré : '+r.code);
  }
