@@ -2,8 +2,22 @@
 const $=q=>document.querySelector(q),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const L=ArkI18n;let language=localStorage.getItem('bot-ark-language')||'fr';if(!L.languages.includes(language))language='fr';
 const tr=k=>L.t(language,k);let me={loggedIn:false,role:null,guilds:[],bot:{}},state={},selectedGuild='',page='home',demo=false,ticketView=null,installPrompt=null,worker=null,aiReady=false,aiBusy=false,validatorFile=null,validatorResult=null;
-const nav=[['home','◈'],['premium','★'],['topservers','🏆'],['interpol','⛨'],['partners','🤝'],['maps','⌖'],['recipes','⚗'],['shop','◆'],['rp','♜'],['lottery','🎟'],['minigames','🎮'],['quests','✧'],['pass','◇'],['tickets','▣'],['players','♙'],['seasons','◷'],['logs','≡'],['validator','🧰'],['settings','⚙'],['assistant','✦'],['guide','?']];
-const navGroups=[['PRINCIPAL',['home','premium','topservers']],['ARK',['maps','recipes','players','logs','validator']],['ENGAGEMENT',['quests','pass','seasons']],['COMMUNAUTÉ',['rp','shop','lottery','minigames','tickets']],['OUTILS',['interpol','partners','assistant','guide','settings']]];
+const moduleLabels={
+ messages:'Messages',welcome:'Arrivées et départs',autoroles:'Rôles automatiques',levels:'Niveaux',tempvoice:'Salons vocaux temporaires',infinity:"Route de l’Infini",suggestions:'Suggestions',secureroles:'Rôles sécurisés',moderation:'Modération',automod:'Auto-Modération',reports:'Signalements',snippets:'Snippets',social:'Notifications sociales',recurring:'Messages récurrents',statschannels:'Salons de statistiques',birthdays:'Anniversaires',customcommands:'Commandes personnalisées',wordreactions:'Réactions de mots',starboard:'Starboards',reactionroles:'Rôles-Réactions'
+};
+const moduleKeys=new Set(Object.keys(moduleLabels));
+const nav=[['home','◈'],['settings','⚙'],['messages','▤'],['welcome','▣'],['autoroles','▧'],['levels','↗'],['rp','♜'],['tempvoice','🔊'],['infinity','∞'],['suggestions','💡'],['secureroles','🛡'],['moderation','⚒'],['automod','◈'],['reports','⚑'],['logs','◷'],['tickets','🎫'],['snippets','▤'],['social','🔊'],['recurring','◷'],['statschannels','⌁'],['birthdays','🎂'],['customcommands','✧'],['wordreactions','☺'],['starboard','★'],['reactionroles','☷'],['premium','★'],['topservers','🏆'],['interpol','⛨'],['partners','🤝'],['maps','⌖'],['recipes','⚗'],['shop','◆'],['lottery','🎟'],['minigames','🎮'],['quests','✧'],['pass','◇'],['players','♙'],['seasons','◷'],['validator','🧰'],['assistant','✦'],['guide','?']];
+const navGroups=[
+ ['PARAMÈTRES',['settings','messages']],
+ ['ACCUEIL DES MEMBRES',['welcome','autoroles']],
+ ['ENGAGEMENT',['levels','rp','tempvoice','infinity','suggestions','quests','pass','seasons']],
+ ['SÉCURITÉ',['secureroles','moderation','automod','reports','logs','interpol']],
+ ['COMMUNICATION',['tickets','snippets','social','recurring','statschannels']],
+ ['COMMUNAUTÉ',['birthdays','customcommands','wordreactions','starboard','reactionroles','shop','lottery','minigames']],
+ ['ARK',['maps','recipes','players','validator']],
+ ['RÉSEAU',['premium','topservers','partners','assistant','guide']]
+];
+const labelFor=key=>moduleLabels[key]||tr(key);
 const ARK_MAPS=[
 {name:'The Island',type:'official'},{name:'Scorched Earth',type:'official'},{name:'The Center',type:'official'},{name:'Aberration',type:'official'},{name:'Extinction',type:'official'},{name:'Astraeos',type:'official'},{name:'Ragnarok',type:'official'},{name:'Valguero',type:'official'},{name:'Crystal Isles',type:'official'},{name:'Fjordur',type:'official'},{name:'Genesis: Part 1',type:'official'},{name:'Genesis: Part 2',type:'official'},{name:'Lost Colony',type:'official'},{name:'Club ARK',type:'official'},
 {name:'Althemia Magic Ground',type:'mod'},{name:'Amissa',type:'mod'},{name:'Appalachia',type:'mod'},{name:'Arkis',type:'mod'},{name:'Arkopolis Free',type:'mod'},{name:'ASurviveTheNight (Survive the Night)',type:'mod'},{name:'Atlantis',type:'mod'},{name:'Bjarnheim',type:'mod'},{name:'Dark Abyss Dome',type:'mod'},{name:"Dark's Event Map",type:'mod'},{name:'Dragon Topía',type:'mod'},{name:'Dragon Triangle',type:'mod'},{name:'Eden Premium',type:'mod'},{name:'EliteArk Arena',type:'mod'},{name:'EliteArk: Deadzone',type:'mod'},{name:'Enclave: Survival Skyward',type:'mod'},{name:'Epiphany',type:'mod'},{name:'ExtinctionOverGrowth',type:'mod'},{name:'FLASH WARZONE',type:'mod'},{name:'Forglar Part I',type:'mod'},{name:'Forglar Part II',type:'mod'},{name:'Svartalfheim Premium',type:'mod'},{name:'The Island Reforged',type:'mod'},{name:'Scorched Earth Reborn',type:'mod'},{name:'LostCity',type:'mod'},{name:'Islands Of Epoch',type:'mod'},{name:'Temptress Lagoon: Enchanted',type:'mod'},{name:'Arkageddon Map Event [Crossplay]',type:'mod'},{name:'Thaloria',type:'mod'},{name:'ARK Ice Age',type:'mod'},{name:'SmokeZone',type:'mod'}
@@ -72,14 +86,14 @@ async function refresh(){if(demo){state=demoState();render();return}me=await api
 function navigation(){
  const allowed=new Map(nav.filter(([key])=>!adminPages.includes(key)||isStaff()).map(x=>[x[0],x]));
  const navHtml=navGroups.map(([title,items])=>{
-  const rows=items.filter(k=>allowed.has(k)).map(k=>{const [,icon]=allowed.get(k);return `<a href="#${k}" data-module="${esc((tr(k)+' '+k).toLowerCase())}" class="${page===k?'active':''}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${esc(tr(k))}</span></a>`}).join('');
+  const rows=items.filter(k=>allowed.has(k)).map(k=>{const [,icon]=allowed.get(k);return `<a href="#${k}" data-module="${esc((labelFor(k)+' '+k).toLowerCase())}" class="${page===k?'active':''}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${esc(labelFor(k))}</span></a>`}).join('');
   return rows?`<section class="draft-nav-group" data-group><h3>${title}</h3>${rows}</section>`:'';
  }).join('');
  $('#nav').innerHTML=navHtml;
  $('#install').textContent='↓ '+tr('install');
  $('#account').textContent=demo?tr('login'):me.loggedIn?tr('logout'):tr('login');
- $('#language').value=language;$('#page-title').textContent=tr(page);
- document.documentElement.lang=language;document.title=`BOT ARK · ${tr(page)}`;
+ $('#language').value=language;$('#page-title').textContent=labelFor(page);
+ document.documentElement.lang=language;document.title=`BOT ARK · ${labelFor(page)}`;
  const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;
  if(!select.hidden){select.innerHTML=me.guilds.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}
  renderGuildRail();
@@ -284,6 +298,41 @@ function validatorView(){
  <div class="form-actions"><button id="ark-validator-run" class="primary">Analyser et corriger</button></div>
  <div id="ark-validator-output" class="section-gap"></div></section>`;
 }
+async function moduleView(key){
+ const payload=demo?{module:{key,label:moduleLabels[key],enabled:true,config:{}},records:[]} : await api('/api/modules/'+encodeURIComponent(key));
+ const mod=payload.module||{key,label:moduleLabels[key],enabled:true,config:{}};
+ const channels=demo?[]:await api('/api/discord/channels').catch(()=>[]);
+ const textChannels=channels.filter(ch=>ch.type===0||ch.type===5);
+ const voiceChannels=channels.filter(ch=>ch.type===2);
+ const categories=channels.filter(ch=>ch.type===4);
+ const opts=['<option value="">— Aucun salon —</option>'].concat(textChannels.map(ch=>'<option value="'+esc(ch.id)+'" '+(String(mod.config?.channelId||'')===String(ch.id)?'selected':'')+'># '+esc(ch.name)+'</option>')).join('');
+ const cfg=JSON.stringify(mod.config||{},null,2);
+ const notes={
+  welcome:'Variables disponibles : {user} et {server}. Pour les rôles automatiques, ajoute roleIds dans la configuration avancée.',
+  autoroles:'Ajoute les IDs de rôles dans roleIds. Ils peuvent aussi être utilisés avec Arrivées et départs.',
+  levels:'Les messages peuvent attribuer des niveaux/XP. Le salon choisi reçoit les annonces configurées.',
+  tempvoice:'Utilise hubChannelId pour le salon vocal créateur et categoryId pour la catégorie. Les salons vides sont supprimés automatiquement.',
+  suggestions:'La commande /suggestion publie ici.',
+  secureroles:'Journalise ici les changements de rôles sécurisés.',
+  moderation:'Salon de journalisation des actions de modération.',
+  automod:'Ajoute blockedWords: ["mot1","mot2"] pour supprimer automatiquement les messages concernés.',
+  reports:'La commande /signalement publie ici.',
+  snippets:'Ajoute items: [{"name":"regles","content":"..."}]. /snippet envoie le contenu dans ce salon.',
+  social:'Salon cible des notifications sociales configurées.',
+  recurring:'Ajoute items: [{"message":"...","intervalMinutes":60,"channelId":"..."}] pour les messages automatiques.',
+  statschannels:'Permet de préparer les salons statistiques et compteurs.',
+  birthdays:'La commande /anniversaire enregistre la date et le bot souhaite automatiquement l’anniversaire dans ce salon.',
+  customcommands:'Ajoute prefix et commands: [{"name":"site","response":"..."}].',
+  wordreactions:'Ajoute rules: [{"word":"gg","emoji":"🔥"}].',
+  starboard:'Configure emoji et minStars. Les messages qui atteignent le seuil sont publiés ici.',
+  reactionroles:'Stocke ici les réglages de messages/rôles-réactions.',
+  messages:'Salon d’annonces générales du module.',
+  infinity:"Module d’engagement communautaire avec salon dédié.",
+  logs:'Ce salon reçoit les journaux configurés.'
+ };
+ return head(mod.label||moduleLabels[key])+`<div class="grid two"><section class="panel"><div class="panel-head"><h2>${esc(mod.label||moduleLabels[key])}</h2><span class="pill ${mod.enabled?'teal':''}">${mod.enabled?'ACTIF':'INACTIF'}</span></div><form id="module-config-form" data-key="${esc(key)}"><div class="form-grid"><label class="field"><span>État</span><select name="enabled"><option value="true" ${mod.enabled?'selected':''}>Activé</option><option value="false" ${!mod.enabled?'selected':''}>Désactivé</option></select></label><label class="field"><span>Salon Discord choisi par le propriétaire</span><select name="channelId">${opts}</select></label><label class="field wide"><span>Configuration avancée JSON</span><textarea name="configJson" rows="14">${esc(cfg)}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Enregistrer le module</button></div></form><p class="notice section-gap">${esc(notes[key]||'Le propriétaire choisit le salon et les options de ce module.')}</p>${key==='tempvoice'?`<div class="notice"><b>Vocaux disponibles :</b> ${voiceChannels.map(x=>esc(x.name)+' ('+esc(x.id)+')').join(' · ')||'aucun'}<br><b>Catégories :</b> ${categories.map(x=>esc(x.name)+' ('+esc(x.id)+')').join(' · ')||'aucune'}</div>`:''}</section><section class="panel"><h2>Historique</h2><div class="stack">${(payload.records||[]).slice(0,50).map(r=>`<div class="log-line"><span class="muted">${esc(date(r.created_at))}</span><br><code>${esc(JSON.stringify(r.data||{}))}</code></div>`).join('')||empty()}</div></section></div>`;
+}
+
 async function settingsView(){let config={language,staff_role_id:'',ticket_category_id:'',audit_channel_id:'',nitrado_service_id:'',nitrado_log_path:''};if(selectedGuild&&!demo)config={...config,...await api('/api/settings')};return head('settings')+`<div class="stack">${me.role==='owner'||demo?setupDiscord()+panel('community',`<form id="guild-form"><div class="form-grid">${field('guildId','id')}${field('name','name')}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('addGuild'))}</button></div></form>`):''}${selectedGuild||demo?panel('settings',`<form id="settings-form"><div class="form-grid">${field('language','language','text',config.language,L.languages.map(l=>({value:l,label:({fr:'Français',en:'English',de:'Deutsch',es:'Español',it:'Italiano',ru:'Русский'})[l]})))}${field('staffRole','staff_role_id','text',config.staff_role_id)}${field('ticketCategory','ticket_category_id','text',config.ticket_category_id)}${field('auditChannel','audit_channel_id','text',config.audit_channel_id)}</div><div class="section-gap"><h3>${esc(tr('nitrado'))}</h3></div><div class="form-grid section-gap">${field('nitradoToken','nitrado_token','password')}${field('serviceId','nitrado_service_id','text',config.nitrado_service_id)}${field('logPath','nitrado_log_path','text',config.nitrado_log_path,null,true)}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('save'))}</button></div></form>`)+panel('webhook',`<p class="muted">${esc(tr('logNotice'))}</p><div class="section-gap">${button('newSecret','webhook','','ghost',true)}</div>`):''}</div>`}
 
 
@@ -314,7 +363,7 @@ async function topServersView(){
 
 function guideView(){return head('guide')+`<div class="grid two">${[['install','installIos','installAndroid','installPc','installMac'],['seasons','guideSeasons'],['quests','guideQuests'],['pass','guidePass'],['tickets','guideTickets'],['logs','guideLogs']].map(([title,...paragraphs])=>`<section class="guide-card"><h2>${esc(tr(title))}</h2>${paragraphs.map(p=>`<p>${esc(tr(p))}</p>`).join('')}${title==='install'?'<div class="section-gap">'+button('install','install','','primary')+'</div>':''}</section>`).join('')}</div>`}
 let aiMessages=[];function assistantView(){return head('assistant')+`<div class="ai-layout"><div class="notice teal">${esc(tr('aiIntro'))}</div><section class="panel"><p class="muted">${esc(tr('aiDownload'))}</p><div class="section-gap">${button(aiReady?'aiReady':'aiStart','ai-start','','primary')} <span id="ai-status" class="muted"></span></div><div id="conversation" class="conversation section-gap">${aiMessages.map(m=>`<div class="bubble ${m.role}">${esc(m.content)}</div>`).join('')}</div><form id="ai-form" class="ai-input"><input name="question" aria-label="${esc(tr('aiQuestion'))}" placeholder="${esc(tr('aiQuestion'))}" required maxlength="1000"><button class="primary" ${aiBusy||!aiReady?'disabled':''}>${esc(tr('send'))}</button></form></section></div>`}
-async function render(){navigation();$('#offline').textContent=tr('offline');$('#offline').hidden=navigator.onLine;let html='';if(!me.loggedIn&&!demo&&!['guide','assistant','topservers','premium'].includes(page))html=loginView();else if(me.loggedIn&&!selectedGuild&&!['settings','guide','assistant','interpol','partners','premium','validator'].includes(page))html=head('home')+`<div class="notice">${esc(tr('selectGuild'))}</div>`+setupDiscord()+`<div class="section-gap">${button('addGuild','navigate','settings','primary')}</div>`;else{const views={home:homeView,premium:premiumView,topservers:topServersView,maps:mapsView,recipes:recipesView,encyclopedia:encyclopediaView,shop:shopView,rp:rpView,lottery:lotteryView,minigames:minigamesView,quests:questsView,pass:passView,tickets:ticketsView,players:playersView,seasons:seasonsView,logs:logsView,validator:validatorView,settings:settingsView,guide:guideView,assistant:assistantView,recipes:recipesView,interpol:interpolView,partners:partnersView};if(adminPages.includes(page)&&!isStaff()){page='home';html=homeView()}else html=await (views[page]||homeView)();}if(demo)html=`<div class="notice"><strong>${esc(tr('demo'))}</strong> · ${esc(tr('demoNotice'))}</div>`+html;$('#main').innerHTML=html;bindForms();}
+async function render(){navigation();$('#offline').textContent=tr('offline');$('#offline').hidden=navigator.onLine;let html='';if(!me.loggedIn&&!demo&&!['guide','assistant','topservers','premium'].includes(page))html=loginView();else if(me.loggedIn&&!selectedGuild&&!['settings','guide','assistant','interpol','partners','premium','validator'].includes(page))html=head('home')+`<div class="notice">${esc(tr('selectGuild'))}</div>`+setupDiscord()+`<div class="section-gap">${button('addGuild','navigate','settings','primary')}</div>`;else{const views={home:homeView,premium:premiumView,topservers:topServersView,maps:mapsView,recipes:recipesView,encyclopedia:encyclopediaView,shop:shopView,rp:rpView,lottery:lotteryView,minigames:minigamesView,quests:questsView,pass:passView,tickets:ticketsView,players:playersView,seasons:seasonsView,logs:logsView,validator:validatorView,settings:settingsView,guide:guideView,assistant:assistantView,recipes:recipesView,interpol:interpolView,partners:partnersView};if(adminPages.includes(page)&&!isStaff()){page='home';html=homeView()}else if(moduleKeys.has(page)&&page!=='logs')html=await moduleView(page);else html=await (views[page]||homeView)();}if(demo)html=`<div class="notice"><strong>${esc(tr('demo'))}</strong> · ${esc(tr('demoNotice'))}</div>`+html;$('#main').innerHTML=html;bindForms();}
 function openModal(title,content){$('#modal-content').innerHTML=`<h2>${esc(tr(title))}</h2>${content}`;$('#modal').showModal()}
 function formModal(title,fields,submit){openModal(title,`<form id="modal-form"><div class="form-grid">${fields}</div><div class="form-error" role="alert"></div><div class="form-actions">${button('cancel','modal-close')}<button class="primary">${esc(tr('save'))}</button></div></form>`);$('#modal-form').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await submit(new FormData(e.target));$('#modal').close();toast(tr('saved'));await refresh()}catch(err){e.target.querySelector('.form-error').textContent=tr(err.message)}finally{b.disabled=false}}}
 function seasonOptions(){return (state.seasons||[]).filter(s=>s.status!=='archived').map(s=>({value:s.id,label:s.name}))}
@@ -391,7 +440,9 @@ function bindFileValidator(){
   }catch(e){out.innerHTML='<div class="notice">'+esc(tr(e.message))+'</div>'}finally{run.disabled=false}
  };
 }
-function bindForms(){bindPortalCatalog();bindMapCatalog();bindRecipeCatalog();bindFileValidator();bindForm('#login-form',async f=>{demo=false;selectedGuild='';await api('/api/login',Object.fromEntries(f))});bindForm('#guild-form',f=>api('/api/guilds',Object.fromEntries(f)));bindForm('#discord-form',f=>api('/api/setup/discord',Object.fromEntries(f)));bindForm('#settings-form',f=>api('/api/settings',Object.fromEntries(f)));const ai=$('#ai-form');if(ai)ai.onsubmit=e=>{e.preventDefault();if(!aiReady||aiBusy)return;const question=new FormData(ai).get('question');aiMessages.push({role:'user',content:question});aiBusy=true;render();worker.postMessage({type:'ask',question,language})}}
+function bindForms(){bindPortalCatalog();bindMapCatalog();bindRecipeCatalog();bindFileValidator();
+ const moduleForm=$('#module-config-form');if(moduleForm)moduleForm.onsubmit=async e=>{e.preventDefault();const fd=new FormData(moduleForm);let config={};try{config=JSON.parse(String(fd.get('configJson')||'{}'))}catch(err){toast('Configuration JSON invalide',true);return}config.channelId=String(fd.get('channelId')||'');const key=moduleForm.dataset.key;await api('/api/modules/'+encodeURIComponent(key),{enabled:String(fd.get('enabled'))==='true',config});toast('Module enregistré');await render()};
+bindForm('#login-form',async f=>{demo=false;selectedGuild='';await api('/api/login',Object.fromEntries(f))});bindForm('#guild-form',f=>api('/api/guilds',Object.fromEntries(f)));bindForm('#discord-form',f=>api('/api/setup/discord',Object.fromEntries(f)));bindForm('#settings-form',f=>api('/api/settings',Object.fromEntries(f)));const ai=$('#ai-form');if(ai)ai.onsubmit=e=>{e.preventDefault();if(!aiReady||aiBusy)return;const question=new FormData(ai).get('question');aiMessages.push({role:'user',content:question});aiBusy=true;render();worker.postMessage({type:'ask',question,language})}}
 function startAI(){if(aiReady)return;toast(tr('loading'));if(!worker){worker=new Worker('/ai-worker.js',{type:'module'});worker.onmessage=({data})=>{if(data.type==='ready'){aiReady=true;toast(tr('aiReady'));render()}else if(data.type==='answer'){aiBusy=false;aiMessages.push({role:'ai',content:data.answer});if(page==='assistant')render()}else if(data.type==='progress'){const status=$('#ai-status');if(status)status.textContent=data.progress?num(Math.round(data.progress))+' %':tr('loading')}else if(data.type==='error'){aiBusy=false;aiReady=false;worker?.terminate();worker=null;toast(tr('aiError'),true);if(page==='assistant')render()}};worker.onerror=()=>{aiBusy=false;worker?.terminate();worker=null;aiReady=false;toast(tr('aiError'),true)}}worker.postMessage({type:'load',language})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const b=e.target.closest('.ark-map-card[data-action]');if(!b)return;e.preventDefault();action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});
 $('#menu').onclick=()=>{document.body.classList.toggle('nav-open');$('#shade').hidden=!document.body.classList.contains('nav-open')};$('#shade').onclick=()=>{document.body.classList.remove('nav-open');$('#shade').hidden=true};
