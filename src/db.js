@@ -40,6 +40,29 @@ CREATE TABLE IF NOT EXISTS ark_shop_orders(id BIGSERIAL PRIMARY KEY,guild_id TEX
 CREATE TABLE IF NOT EXISTS ark_lottery_tickets(id BIGSERIAL PRIMARY KEY,guild_id TEXT NOT NULL,user_id TEXT NOT NULL,draw_key TEXT NOT NULL,cost BIGINT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS ark_lottery_draws(id BIGSERIAL PRIMARY KEY,guild_id TEXT NOT NULL,draw_key TEXT NOT NULL UNIQUE,winner_user_id TEXT,prize BIGINT NOT NULL DEFAULT 0,drawn_at TIMESTAMPTZ);
 CREATE TABLE IF NOT EXISTS ark_minigame_scores(id BIGSERIAL PRIMARY KEY,guild_id TEXT NOT NULL,user_id TEXT NOT NULL,game TEXT NOT NULL,score INTEGER NOT NULL DEFAULT 0,reward BIGINT NOT NULL DEFAULT 0,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS shared_top_servers(
+ id TEXT PRIMARY KEY,
+ name TEXT NOT NULL,
+ game TEXT NOT NULL,
+ address TEXT NOT NULL DEFAULT '',
+ website TEXT NOT NULL DEFAULT '',
+ discord_url TEXT NOT NULL DEFAULT '',
+ description TEXT NOT NULL DEFAULT '',
+ image_url TEXT NOT NULL DEFAULT '',
+ source_bot TEXT NOT NULL DEFAULT 'BOT ARK',
+ enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS shared_top_server_votes(
+ id BIGSERIAL PRIMARY KEY,
+ server_id TEXT NOT NULL REFERENCES shared_top_servers(id) ON DELETE CASCADE,
+ voter_hash TEXT NOT NULL,
+ vote_day DATE NOT NULL DEFAULT CURRENT_DATE,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ UNIQUE(server_id,voter_hash,vote_day)
+);
+CREATE INDEX IF NOT EXISTS shared_top_server_votes_rank_idx ON shared_top_server_votes(server_id,created_at DESC);
 
 `);console.log('BOT ARK : Postgres prêt')}
 module.exports={query,one,all,tx,init,close:()=>pool?.end()};
