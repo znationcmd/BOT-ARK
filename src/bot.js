@@ -2,6 +2,7 @@ const {Client,GatewayIntentBits,PermissionFlagsBits:P,ChannelType,REST,Routes,Sl
 const db=require('./db'),s=require('./service'),vault=require('./crypto');
 const {t}=require('../public/locales');
 const {fail}=require('./errors');
+const discordTools=require('./discord-tools');
 let client=null,applicationId='',lastError=null,connecting=false;
 const langFrom=locale=>({fr:'fr',de:'de',it:'it',ru:'ru','es-ES':'es','es-419':'es'}[locale]||'en');
 const commandLocales={fr:'fr','en-US':'en','en-GB':'en',de:'de','es-ES':'es',it:'it',ru:'ru'};
@@ -13,7 +14,7 @@ function commands(){const b=name=>new SlashCommandBuilder().setName(name).setDMP
  desc(b('profil'),'players').addStringOption(o=>desc(o.setName('identifiant').setRequired(true).setMaxLength(100),'gameId')).addStringOption(o=>desc(o.setName('plateforme').setRequired(true),'platform').addChoices({name:'PC',value:'PC'},{name:'Xbox',value:'Xbox'},{name:'PlayStation',value:'PlayStation'})),
  desc(b('ticket'),'newTicket').addStringOption(o=>desc(o.setName('sujet').setRequired(true).setMaxLength(150),'subject')),
  desc(b('fermer'),'close').addIntegerOption(o=>desc(o.setName('id').setRequired(true),'tickets'))
- ].map(c=>c.toJSON())}
+ ].concat(discordTools.commands()).map(c=>c.toJSON())}
 function status(){return {ready:Boolean(client?.isReady()),applicationId,username:client?.user?.username||null,guilds:client?.guilds.cache.size||0,error:lastError,connecting,inviteUrl:applicationId?`https://discord.com/oauth2/authorize?client_id=${applicationId}&permissions=268454928&integration_type=0&scope=bot+applications.commands`:null}}
 function isManager(guild,member){return guild.ownerId===member.id||member.permissions.has(P.Administrator)||member.permissions.has(P.ManageGuild)}
 async function verify(g,user,role){if(!client?.isReady())fail('botNotReady');const guild=await client.guilds.fetch(g);const member=await guild.members.fetch(user);if(role==='admin'&&!isManager(guild,member))fail('forbidden',403);return true}
