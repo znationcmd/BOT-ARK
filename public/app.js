@@ -3,6 +3,7 @@ const $=q=>document.querySelector(q),esc=s=>String(s??'').replace(/[&<>"']/g,c=>
 const L=ArkI18n;let language=localStorage.getItem('bot-ark-language')||'fr';if(!L.languages.includes(language))language='fr';
 const tr=k=>L.t(language,k);let me={loggedIn:false,role:null,guilds:[],bot:{}},state={},selectedGuild='',page='home',demo=false,ticketView=null,installPrompt=null,worker=null,aiReady=false,aiBusy=false,validatorFile=null,validatorResult=null;
 const nav=[['home','◈'],['premium','★'],['topservers','🏆'],['interpol','⛨'],['partners','🤝'],['maps','⌖'],['recipes','⚗'],['shop','◆'],['rp','♜'],['lottery','🎟'],['minigames','🎮'],['quests','✧'],['pass','◇'],['tickets','▣'],['players','♙'],['seasons','◷'],['logs','≡'],['validator','🧰'],['settings','⚙'],['assistant','✦'],['guide','?']];
+const navGroups=[['PRINCIPAL',['home','premium','topservers']],['ARK',['maps','recipes','players','logs','validator']],['ENGAGEMENT',['quests','pass','seasons']],['COMMUNAUTÉ',['rp','shop','lottery','minigames','tickets']],['OUTILS',['interpol','partners','assistant','guide','settings']]];
 const ARK_MAPS=[
 {name:'The Island',type:'official'},{name:'Scorched Earth',type:'official'},{name:'The Center',type:'official'},{name:'Aberration',type:'official'},{name:'Extinction',type:'official'},{name:'Astraeos',type:'official'},{name:'Ragnarok',type:'official'},{name:'Valguero',type:'official'},{name:'Crystal Isles',type:'official'},{name:'Fjordur',type:'official'},{name:'Genesis: Part 1',type:'official'},{name:'Genesis: Part 2',type:'official'},{name:'Lost Colony',type:'official'},{name:'Club ARK',type:'official'},
 {name:'Althemia Magic Ground',type:'mod'},{name:'Amissa',type:'mod'},{name:'Appalachia',type:'mod'},{name:'Arkis',type:'mod'},{name:'Arkopolis Free',type:'mod'},{name:'ASurviveTheNight (Survive the Night)',type:'mod'},{name:'Atlantis',type:'mod'},{name:'Bjarnheim',type:'mod'},{name:'Dark Abyss Dome',type:'mod'},{name:"Dark's Event Map",type:'mod'},{name:'Dragon Topía',type:'mod'},{name:'Dragon Triangle',type:'mod'},{name:'Eden Premium',type:'mod'},{name:'EliteArk Arena',type:'mod'},{name:'EliteArk: Deadzone',type:'mod'},{name:'Enclave: Survival Skyward',type:'mod'},{name:'Epiphany',type:'mod'},{name:'ExtinctionOverGrowth',type:'mod'},{name:'FLASH WARZONE',type:'mod'},{name:'Forglar Part I',type:'mod'},{name:'Forglar Part II',type:'mod'},{name:'Svartalfheim Premium',type:'mod'},{name:'The Island Reforged',type:'mod'},{name:'Scorched Earth Reborn',type:'mod'},{name:'LostCity',type:'mod'},{name:'Islands Of Epoch',type:'mod'},{name:'Temptress Lagoon: Enchanted',type:'mod'},{name:'Arkageddon Map Event [Crossplay]',type:'mod'},{name:'Thaloria',type:'mod'},{name:'ARK Ice Age',type:'mod'},{name:'SmokeZone',type:'mod'}
@@ -68,7 +69,35 @@ async function api(url,body,method=body?'POST':'GET'){
 }
 function demoState(){const seasons={fr:'Saison 01 · L’éveil de l’île',en:'Season 01 · Island awakening',de:'Saison 01 · Erwachen der Insel',es:'Temporada 01 · El despertar de la isla',it:'Stagione 01 · Il risveglio dell’isola',ru:'Сезон 01 · Пробуждение острова'};const names={fr:['Apprivoise ton premier Raptor','Explore les ruines anciennes','Relève le défi des boss'],en:['Tame your first Raptor','Explore ancient ruins','Take on the boss challenge'],de:['Zähme deinen ersten Raptor','Erkunde alte Ruinen','Bestehe die Boss-Herausforderung'],es:['Domestica tu primer Raptor','Explora ruinas antiguas','Supera el desafío de jefes'],it:['Addomestica il primo Raptor','Esplora le rovine antiche','Affronta la sfida dei boss'],ru:['Приручи первого раптора','Исследуй древние руины','Пройди испытание боссов']};const now=Date.now();const season={id:1,name:seasons[language],starts_at:new Date(now-86400000*8).toISOString(),ends_at:new Date(now+86400000*22).toISOString(),xp_per_tier:100,status:'published'};const quests=names[language].map((title,i)=>({id:i+1,title,description:['Raptor','The Island','Broodmother'][i],kind:['tame','explore','boss'][i],period:['daily','weekly','season'][i],xp:[150,250,500][i],goal:[3,5,1][i],progress:[1,3,0][i],completed:false,season_id:1,enabled:true}));const rewards=Array.from({length:12},(_,i)=>({id:i+1,tier:Math.floor(i/2)+1,title:[tr('role')+' · Survivor',tr('premium')+' · Explorer'][i%2],description:tr(i%2?'manual':'role'),premium:Boolean(i%2),unlocked:i<8,claim_status:i<2?'delivered':null,kind:i%2?'manual':'role'}));return {season,seasons:[season],quests,allQuests:quests,rewards,pass:{season,xp:420,tier:4,premium:false,rewards},leaderboard:[{name:'Astrid',xp:1850},{name:'Derek',xp:1420},{name:'Ragnar',xp:1180},{name:'Freya',xp:960}],tickets:[{id:12,title:tr('newTicket'),user_id:'Derek',status:'open',created_at:new Date(now-3600000).toISOString()}],stats:{members:128,tickets:3,pending:5},claims:[],members:[{user_id:'10000000000001',name:'Derek',platform:'Xbox',game_id:'ARK-EXAMPLE',verified:true,premium:false}],audit:[],logs:[],rewardClaims:[]}}
 async function refresh(){if(demo){state=demoState();render();return}me=await api('/api/me');if(me.loggedIn){if(!selectedGuild)selectedGuild=me.guildId||me.guilds[0]?.id||'';if(selectedGuild)state=await api('/api/state');else state={};}render()}
-function navigation(){const keys=nav.filter(([key])=>!adminPages.includes(key)||isStaff());$('#nav').innerHTML=keys.map(([key,icon])=>`<a href="#${key}" class="${page===key?'active':''}"><span class="nav-icon" aria-hidden="true">${icon}</span>${esc(tr(key))}</a>`).join('');$('#install').textContent='↓ '+tr('install');$('#account').textContent=demo?tr('login'):me.loggedIn?tr('logout'):tr('login');$('#language').value=language;$('#page-title').textContent=tr(page);document.documentElement.lang=language;document.title=`BOT ARK · ${tr(page)}`;const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;if(!select.hidden){select.innerHTML=me.guilds.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}}
+function navigation(){
+ const allowed=new Map(nav.filter(([key])=>!adminPages.includes(key)||isStaff()).map(x=>[x[0],x]));
+ const navHtml=navGroups.map(([title,items])=>{
+  const rows=items.filter(k=>allowed.has(k)).map(k=>{const [,icon]=allowed.get(k);return `<a href="#${k}" data-module="${esc((tr(k)+' '+k).toLowerCase())}" class="${page===k?'active':''}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${esc(tr(k))}</span></a>`}).join('');
+  return rows?`<section class="draft-nav-group" data-group><h3>${title}</h3>${rows}</section>`:'';
+ }).join('');
+ $('#nav').innerHTML=navHtml;
+ $('#install').textContent='↓ '+tr('install');
+ $('#account').textContent=demo?tr('login'):me.loggedIn?tr('logout'):tr('login');
+ $('#language').value=language;$('#page-title').textContent=tr(page);
+ document.documentElement.lang=language;document.title=`BOT ARK · ${tr(page)}`;
+ const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;
+ if(!select.hidden){select.innerHTML=me.guilds.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}
+ renderGuildRail();
+ bindModuleSearch();
+}
+function initials(name){return String(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?'}
+function renderGuildRail(){
+ const rail=$('#guild-rail'),context=$('#server-context');if(!rail||!context)return;
+ if(!me.loggedIn||!me.guilds?.length){rail.innerHTML='';context.innerHTML='<strong>BOT ARK</strong><small>Discord non sélectionné</small>';return}
+ rail.innerHTML=me.guilds.map(g=>`<button type="button" class="guild-bubble ${g.id===selectedGuild?'active':''}" data-guild="${esc(g.id)}" title="${esc(g.name)}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`).join('');
+ const current=me.guilds.find(g=>g.id===selectedGuild)||me.guilds[0];
+ context.innerHTML=`<div class="server-context-icon">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div><strong>${esc(current.name)}</strong><small>Bot installé · ${num(current.memberCount||0)} membre(s)</small></div>`;
+ rail.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
+}
+function bindModuleSearch(){
+ const input=$('#module-search');if(!input)return;input.value='';
+ input.oninput=()=>{const q=input.value.trim().toLowerCase();document.querySelectorAll('#nav [data-module]').forEach(a=>a.hidden=!!q&&!a.dataset.module.includes(q));document.querySelectorAll('#nav [data-group]').forEach(g=>g.hidden=![...g.querySelectorAll('[data-module]')].some(a=>!a.hidden));};
+}
 function loginView(){
  const publicTools=[
   ['maps','⌖','Cartes ARK','Cartes officielles et moddés · groupes et repères','cartes exploration'],
