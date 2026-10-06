@@ -81,3 +81,9 @@ nav a.active{background:linear-gradient(90deg,rgba(83,226,211,.18),rgba(83,226,2
 .ark-map-viewer.fallback img{height:min(52vh,540px);object-fit:cover;filter:saturate(.55) brightness(.68)}
 .ark-map-viewer figcaption{padding:10px 14px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--stroke);background:#071820}
 @media(max-width:700px){.ark-map-thumb{aspect-ratio:1.25/1}.ark-map-viewer img{max-height:48vh}.ark-map-viewer.fallback img{height:36vh}}
+
+/* Mobile safe area + living background */
+@keyframes botArkBackgroundDrift{0%{background-position:48% 48%}50%{background-position:54% 44%}100%{background-position:48% 48%}}
+.ambient{inset:-4%;background-size:auto,112% 112%;animation:botArkBackgroundDrift 28s ease-in-out infinite;will-change:background-position}
+@media(max-width:760px){.topbar{padding-top:calc(13px + env(safe-area-inset-top,0px));min-height:calc(78px + env(safe-area-inset-top,0px))}.workspace{padding-top:0}main{padding-top:28px}}
+@media(prefers-reduced-motion:reduce){.ambient{animation:none}}
