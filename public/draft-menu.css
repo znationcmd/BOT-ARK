@@ -72,3 +72,5 @@ aside#sidebar{
   .nav-open aside#sidebar{left:66px!important}
   .server-context strong{max-width:180px}
 }
+
+.refresh-button{font-size:1.35rem;font-weight:900;line-height:1}.refresh-button:disabled{opacity:.55;cursor:wait}
