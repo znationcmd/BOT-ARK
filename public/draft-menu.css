@@ -17,7 +17,7 @@
 .guild-bubble.active{border-color:var(--teal);box-shadow:0 0 0 3px rgba(83,226,211,.12);border-radius:15px}
 .guild-bubble.active:before{content:'';position:fixed;left:0;width:4px;height:38px;border-radius:0 4px 4px 0;background:var(--teal)}
 aside#sidebar{
-  left:76px!important;width:310px!important;transform:translateX(0)!important;
+  left:76px!important;width:310px!important;transform:translateX(0)!important;z-index:43!important;
   background:#2a3034!important;border-right:1px solid rgba(255,255,255,.08)!important;
   box-shadow:14px 0 40px #0006!important;padding:18px 16px 24px!important;
 }
@@ -63,9 +63,15 @@ aside#sidebar{
   .workspace{margin-left:0!important}
   .nav-open .guild-rail{transform:translateX(0)}
   .nav-open aside#sidebar{left:76px!important;transform:translateX(0)!important}
-  #shade{z-index:30!important}
+  #shade{z-index:40!important}
+  aside#sidebar{z-index:43!important;height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+  aside#sidebar #nav{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+  .guild-rail{z-index:44!important;height:100dvh!important}
+  body.nav-open{overflow:hidden!important}
 }
 @media(max-width:520px){
+  .nav-open aside#sidebar{display:flex!important;visibility:visible!important;opacity:1!important}
+  .nav-open #nav{display:flex!important;visibility:visible!important;opacity:1!important}
   .guild-rail{width:66px;padding-left:6px;padding-right:6px}
   .guild-bubble{width:48px;height:48px;min-height:48px;border-radius:16px}
   aside#sidebar{width:calc(100vw - 66px)!important;left:66px!important;padding-left:14px!important;padding-right:14px!important}
