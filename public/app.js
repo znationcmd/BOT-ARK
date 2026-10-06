@@ -498,3 +498,5 @@ window.forceAppRefresh=forceAppRefresh;
 
 document.getElementById('draft-menu-left')?.addEventListener('click',()=>document.getElementById('menu')?.click());
 document.getElementById('draft-menu-grid')?.addEventListener('click',()=>document.getElementById('menu')?.click());
+
+document.getElementById('draft-refresh')?.addEventListener('click',forceAppRefresh);
