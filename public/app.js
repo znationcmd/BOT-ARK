@@ -456,17 +456,28 @@ boot();
 
 let arkReloading=false,arkSwRegistration=null;
 async function forceAppRefresh(){
- const btn=document.getElementById('force-refresh');if(btn){btn.disabled=true;btn.textContent='…'}
+ const buttons=['force-refresh','draft-refresh'].map(id=>document.getElementById(id)).filter(Boolean);
+ buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='…'});
  try{
+  if('caches' in window){
+   const keys=await caches.keys();
+   await Promise.all(keys.filter(k=>k.startsWith('bot-ark-shell-')).map(k=>caches.delete(k)));
+  }
   if('serviceWorker' in navigator){
    arkSwRegistration=arkSwRegistration||await navigator.serviceWorker.getRegistration('/');
    if(arkSwRegistration){
     await arkSwRegistration.update();
-    if(arkSwRegistration.waiting){arkSwRegistration.waiting.postMessage({type:'SKIP_WAITING'});return}
+    if(arkSwRegistration.waiting){
+     arkSwRegistration.waiting.postMessage({type:'SKIP_WAITING'});
+     setTimeout(()=>location.reload(),900);
+     return;
+    }
    }
   }
   location.reload();
- }catch(e){location.reload()}finally{if(btn){btn.disabled=false;btn.textContent='↻'}}
+ }catch(e){location.reload()}finally{
+  buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'↻'});
+ }
 }
 async function checkArkUpdate(){
  if(!('serviceWorker' in navigator)||!navigator.onLine)return;
