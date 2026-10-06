@@ -18,6 +18,25 @@ function commands(){const b=name=>new SlashCommandBuilder().setName(name).setDMP
  ].concat(discordTools.commands(),modules.commands()).map(c=>c.toJSON())}
 function status(){return {ready:Boolean(client?.isReady()),applicationId,username:client?.user?.username||null,guilds:client?.guilds.cache.size||0,error:lastError,connecting,inviteUrl:applicationId?`https://discord.com/oauth2/authorize?client_id=${applicationId}&permissions=268454928&integration_type=0&scope=bot+applications.commands`:null}}
 function installedGuilds(){if(!client?.isReady())return [];return [...client.guilds.cache.values()].map(g=>({id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,ownerId:g.ownerId,memberCount:g.memberCount||0,installed:true})).sort((a,b)=>a.name.localeCompare(b.name,'fr'))}
+async function guildAccess(guildId,userId){
+  if(!client?.isReady())return null;
+  try{
+    const guild=await client.guilds.fetch(guildId);
+    const member=await guild.members.fetch(userId);
+    return isManager(guild,member)?'admin':'player';
+  }catch{return null}
+}
+async function accessibleGuilds(userId){
+  if(!client?.isReady()||!userId)return[];
+  const out=[];
+  for(const guild of client.guilds.cache.values()){
+    try{
+      const member=await guild.members.fetch(userId);
+      out.push({id:guild.id,name:guild.name,icon:guild.iconURL({extension:'webp',size:128})||null,ownerId:guild.ownerId,memberCount:guild.memberCount||0,installed:true,role:isManager(guild,member)?'admin':'player'});
+    }catch{}
+  }
+  return out.sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+}
 async function guildChannels(guildId){if(!client?.isReady())return[];const guild=await client.guilds.fetch(guildId);await guild.channels.fetch();return [...guild.channels.cache.values()].filter(ch=>[ChannelType.GuildText,ChannelType.GuildAnnouncement,ChannelType.GuildVoice,ChannelType.GuildCategory].includes(ch.type)).map(ch=>({id:ch.id,name:ch.name,type:ch.type,parentId:ch.parentId||null})).sort((a,b)=>a.type-b.type||a.name.localeCompare(b.name,'fr'))}
 function isManager(guild,member){return guild.ownerId===member.id||member.permissions.has(P.Administrator)||member.permissions.has(P.ManageGuild)}
 async function verify(g,user,role){if(!client?.isReady())fail('botNotReady');const guild=await client.guilds.fetch(g);const member=await guild.members.fetch(user);if(role==='admin'&&!isManager(guild,member))fail('forbidden',403);return true}
@@ -76,4 +95,4 @@ let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),15000);auditTimer.unref();
 const moduleTimer=setInterval(()=>modules.tick(client).catch(()=>{}),60000);moduleTimer.unref();
-module.exports={start,status,installedGuilds,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
+module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
