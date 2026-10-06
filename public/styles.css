@@ -87,3 +87,18 @@ nav a.active{background:linear-gradient(90deg,rgba(83,226,211,.18),rgba(83,226,2
 .ambient{inset:-4%;background-size:auto,112% 112%;animation:botArkBackgroundDrift 28s ease-in-out infinite;will-change:background-position}
 @media(max-width:760px){.topbar{padding-top:calc(13px + env(safe-area-inset-top,0px));min-height:calc(78px + env(safe-area-inset-top,0px))}.workspace{padding-top:0}main{padding-top:28px}}
 @media(prefers-reduced-motion:reduce){.ambient{animation:none}}
+
+
+/* BOT ARK animated existing background v1 */
+@keyframes arkExistingBackgroundMotion{
+  0%{transform:scale(1.04) translate3d(0,0,0);filter:saturate(1) brightness(1)}
+  50%{transform:scale(1.09) translate3d(-1.2%,.8%,0);filter:saturate(1.06) brightness(1.04)}
+  100%{transform:scale(1.04) translate3d(0,0,0);filter:saturate(1) brightness(1)}
+}
+.ambient{
+  inset:-4%!important;
+  animation:arkExistingBackgroundMotion 24s ease-in-out infinite;
+  transform-origin:center center;
+  will-change:transform,filter;
+}
+@media(prefers-reduced-motion:reduce){.ambient{animation:none!important;transform:none!important;inset:0!important}}
