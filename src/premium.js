@@ -8,14 +8,17 @@ const PLANS={
  battlepass:{name:'Pass de combat Premium',maxServers:0,monthly:{amountCents:299,days:30},yearly:{amountCents:2500,days:365}}
 };
 const hash=s=>crypto.createHash('sha256').update(String(s).trim().toUpperCase()).digest('hex');
+const complimentary=user=>String(user)==='owner';
+const lifetime=(g,user,product)=>({id:`owner-lifetime-${product}`,guild_id:String(g),user_id:String(user),product,starts_at:'2026-01-01T00:00:00.000Z',expires_at:'9999-12-31T23:59:59.999Z',complimentary:true});
 function plan(product,billing){const p=PLANS[product],b=p?.[billing];if(!p||!b)fail('invalidPremiumPlan',400);return {...p,...b,product,billing};}
 function makeCode(product){return `VAL-${product==='multiserver'?'MULTI':'PASS'}-${crypto.randomBytes(9).toString('base64url').toUpperCase()}`;}
 async function activeSubscription(g,user,product){
+ if(complimentary(user))return lifetime(g,user,product);
  return db.one("SELECT * FROM ark_premium_subscriptions WHERE guild_id=$1 AND user_id=$2 AND product=$3 AND expires_at>NOW() ORDER BY expires_at DESC LIMIT 1",[g,user,product]);
 }
 async function status(g,user){
  const [multi,battle,servers]=await Promise.all([activeSubscription(g,user,'multiserver'),activeSubscription(g,user,'battlepass'),db.all('SELECT * FROM ark_premium_servers WHERE guild_id=$1 ORDER BY id',[g])]);
- return {paypalUrl:PAYPAL_URL,plans:PLANS,multiserver:multi||null,battlepass:battle||null,maxServers:multi?20:1,servers};
+ return {paypalUrl:PAYPAL_URL,plans:PLANS,multiserver:multi||null,battlepass:battle||null,maxServers:multi?20:1,servers,complimentary:complimentary(user)};
 }
 async function requestPayment(g,user,product,billing){
  const p=plan(product,billing),id=crypto.randomUUID(),reference=`VAL-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
