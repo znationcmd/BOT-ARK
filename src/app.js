@@ -13,7 +13,7 @@ function app(){
  const owner=(req,res,next)=>{if(req.session.role!=='owner')fail('forbidden',403);next()};
  const scope=(req,res,next)=>{const g=String(req.query.guild||req.body.guild||req.session.guildId||'');if(!g)fail('selectGuild');req.g=g;next()};
  const actor=req=>req.session.user;
- const attemptMap=new Map();function limit(req){const now=Date.now();const key=req.ip;let item=attemptMap.get(key);if(!item||now-item.at>900000)item={at:now,n:0};item.n++;attemptMap.set(key,item);if(item.n>12)fail('rateLimit',429);if(attemptMap.size>10000)for(const [key,item]of attemptMap)if(now-item.at>900000)attemptMap.delete(key)}
+ const attemptMap=new Map();function limit(req){const now=Date.now();const key=req.ip;let item=attemptMap.get(key);if(!item||now-item.at>900000)item={at:now,n:0};item.n++;attemptMap.set(key,item);if(item.n>12)fail('rateLimit',429);if(attemptMap.size>2000)for(const [key,item]of attemptMap)if(now-item.at>900000)attemptMap.delete(key)}
  const regenerate=req=>new Promise((resolve,reject)=>req.session.regenerate(e=>e?reject(e):resolve()));
  const save=req=>new Promise((resolve,reject)=>req.session.save(e=>e?reject(e):resolve()));
  route('get','/health',async(req,res)=>{await db.one('SELECT 1');res.json({ok:true,app:'BOT ARK',database:'postgres',discord:bot.status().ready})});
@@ -77,7 +77,7 @@ function app(){
  route('post','/api/premium/admin/code',login,owner,async(req,res)=>res.json(await premium.generateCode(actor(req),String(req.body.product||''),String(req.body.billing||''))));
  route('post','/api/premium/admin/approve/:id',login,owner,async(req,res)=>res.json(await premium.approvePayment(actor(req),req.params.id)));
  route('post','/api/setup/discord',login,owner,async(req,res)=>{const clientId=v.id.parse(req.body.clientId),token=v.text(300).parse(req.body.token);res.json(await bot.start({clientId,token}))});
- app.use(express.static(path.join(__dirname,'..','public'),{maxAge:0,etag:true}));
+ app.use(express.static(path.join(__dirname,'..','public'),{maxAge:'5m',etag:true}));
  app.use((err,req,res,next)=>{console.error('BOT ARK API :',err.code||err.name);if(res.headersSent)return next(err);const isValidation=err.name==='ZodError';const code=isValidation?(err.issues?.find(i=>i.code==='custom')?.message||'invalidInput'):err.status?err.code:'error';res.status(isValidation?400:err.status||500).json({error:code})});
  return app;
 }
