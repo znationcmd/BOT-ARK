@@ -6,7 +6,10 @@ const MODULES={
  messages:{label:'Messages',channel:true},
  welcome:{label:'Arrivées et départs',channel:true},
  autoroles:{label:'Rôles automatiques',channel:false},
+ verification:{label:'Vérification',channel:true},
  levels:{label:'Niveaux',channel:true},
+ invitations:{label:'Invitations',channel:true},
+ reputation:{label:'Réputation',channel:true},
  tempvoice:{label:'Salons vocaux temporaires',channel:false},
  infinity:{label:"Route de l’Infini",channel:true},
  suggestions:{label:'Suggestions',channel:true},
@@ -16,10 +19,14 @@ const MODULES={
  reports:{label:'Signalements',channel:true},
  logs:{label:'Logs',channel:true},
  tickets:{label:'Tickets',channel:true},
+ giveaways:{label:'Lots & Giveaways',channel:true},
+ polls:{label:'Sondages',channel:true},
+ embeds:{label:'Embeds',channel:true},
  snippets:{label:'Snippets',channel:true},
  social:{label:'Notifications sociales',channel:true},
  recurring:{label:'Messages récurrents',channel:true},
  statschannels:{label:'Salons de statistiques',channel:false},
+ counters:{label:'Compteurs',channel:false},
  birthdays:{label:'Anniversaires',channel:true},
  customcommands:{label:'Commandes personnalisées',channel:true},
  wordreactions:{label:'Réactions de mots',channel:true},
@@ -195,11 +202,11 @@ function commands(){
  return[
   new SlashCommandBuilder().setName('module-config').setDescription('Configurer un module et son salon')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addStringOption(o=>o.setName('module').setDescription('Module').setRequired(true).addChoices(...Object.entries(MODULES).map(([value,m])=>({name:m.label,value}))))
+    .addStringOption(o=>o.setName('module').setDescription('Clé du module affichée dans le Dashboard').setRequired(true).setMaxLength(60))
     .addChannelOption(o=>o.setName('salon').setDescription('Salon utilisé par ce module').setRequired(false))
     .addBooleanOption(o=>o.setName('active').setDescription('Activer/désactiver').setRequired(false)),
   new SlashCommandBuilder().setName('suggestion').setDescription('Envoyer une suggestion').addStringOption(o=>o.setName('texte').setDescription('Suggestion').setRequired(true).setMaxLength(1200)),
-  new SlashCommandBuilder().setName('signalement').setDescription('Faire un signalement').addUserOption(o=>o.setName('joueur').setDescription('Joueur concerné').setRequired(false)).addStringOption(o=>o.setName('raison').setDescription('Raison').setRequired(true).setMaxLength(1200)),
+  new SlashCommandBuilder().setName('signalement').setDescription('Faire un signalement').addStringOption(o=>o.setName('raison').setDescription('Raison').setRequired(true).setMaxLength(1200)).addUserOption(o=>o.setName('joueur').setDescription('Joueur concerné').setRequired(false)),
   new SlashCommandBuilder().setName('anniversaire').setDescription('Enregistrer ton anniversaire').addIntegerOption(o=>o.setName('jour').setDescription('Jour').setRequired(true).setMinValue(1).setMaxValue(31)).addIntegerOption(o=>o.setName('mois').setDescription('Mois').setRequired(true).setMinValue(1).setMaxValue(12)),
   new SlashCommandBuilder().setName('snippet').setDescription('Envoyer un snippet enregistré').addStringOption(o=>o.setName('nom').setDescription('Nom').setRequired(true))
  ];
