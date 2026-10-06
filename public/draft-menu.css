@@ -1,0 +1,74 @@
+/* DraftBot-inspired navigation: server rail + grouped module panel */
+.guild-rail{
+  position:fixed;left:0;top:0;bottom:0;z-index:32;width:76px;
+  padding:calc(86px + env(safe-area-inset-top,0px)) 8px 18px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  background:#181d21;border-right:1px solid rgba(255,255,255,.06);
+  overflow-y:auto;overscroll-behavior:contain;
+}
+.guild-bubble{
+  width:54px;height:54px;min-height:54px;border:2px solid transparent;border-radius:18px;
+  display:grid;place-items:center;overflow:hidden;background:#263039;color:#ecf4f5;
+  font:800 .78rem/1 var(--font);letter-spacing:.02em;padding:0;
+  transition:.16s ease;position:relative;
+}
+.guild-bubble img{width:100%;height:100%;object-fit:cover}
+.guild-bubble:hover{border-radius:15px;border-color:rgba(83,226,211,.35)}
+.guild-bubble.active{border-color:var(--teal);box-shadow:0 0 0 3px rgba(83,226,211,.12);border-radius:15px}
+.guild-bubble.active:before{content:'';position:fixed;left:0;width:4px;height:38px;border-radius:0 4px 4px 0;background:var(--teal)}
+aside#sidebar{
+  left:76px!important;width:310px!important;transform:translateX(0)!important;
+  background:#2a3034!important;border-right:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:14px 0 40px #0006!important;padding:18px 16px 24px!important;
+}
+.workspace{margin-left:386px!important}
+.brand{margin-bottom:12px!important}
+.brand img{width:48px!important;height:48px!important}
+.brand strong{font-size:1.12rem!important}
+.brand span{font-size:.62rem!important}
+.server-context{
+  display:flex;align-items:center;gap:11px;padding:10px 10px 14px;margin-bottom:2px;
+  border-bottom:1px solid rgba(255,255,255,.07)
+}
+.server-context-icon{width:40px;height:40px;border-radius:50%;overflow:hidden;background:#141a1e;display:grid;place-items:center;font-weight:800}
+.server-context-icon img{width:100%;height:100%;object-fit:cover}
+.server-context strong{display:block;font-size:.94rem;max-width:205px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.server-context small{display:block;color:#9ea9ae;font-size:.68rem;margin-top:3px}
+.module-search{
+  height:48px;margin:12px 0 14px;padding:0 13px;display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#20262a;color:#aeb9bd
+}
+.module-search span{font-size:1.3rem}
+.module-search input{border:0!important;background:transparent!important;padding:0!important;height:auto!important;color:#eef4f4!important;box-shadow:none!important}
+.module-search input::placeholder{color:#899398}
+#nav{padding-bottom:22px}
+.draft-nav-group{margin:0 0 17px}
+.draft-nav-group h3{
+  margin:0 0 6px;padding:0 10px;color:#8d969a;font-size:.72rem;letter-spacing:.10em;font-weight:800
+}
+#nav .draft-nav-group a{
+  min-height:45px;display:flex;align-items:center;gap:12px;margin:2px 0;padding:10px 12px!important;
+  color:#d5dbde!important;text-transform:none!important;letter-spacing:0!important;
+  font-family:var(--font)!important;font-size:.96rem!important;border-radius:10px!important;background:transparent!important
+}
+#nav .draft-nav-group a:hover{background:#343c41!important}
+#nav .draft-nav-group a.active{background:#3a4247!important;color:#fff!important;box-shadow:none!important}
+#nav .draft-nav-group a .nav-icon{width:24px;text-align:center;font-size:1.08rem;color:#dce2e4}
+#nav a:nth-child(1),#nav a:nth-child(2),#nav a:nth-child(3){position:static!important}
+.side-bottom{display:none!important}
+.topbar{margin-left:0}
+@media(max-width:1100px){
+  .guild-rail{transform:translateX(-110%);transition:transform .2s}
+  aside#sidebar{left:0!important;transform:translateX(-110%)!important;transition:transform .2s!important;width:min(310px,calc(100vw - 76px))!important}
+  .workspace{margin-left:0!important}
+  .nav-open .guild-rail{transform:translateX(0)}
+  .nav-open aside#sidebar{left:76px!important;transform:translateX(0)!important}
+  #shade{z-index:30!important}
+}
+@media(max-width:520px){
+  .guild-rail{width:66px;padding-left:6px;padding-right:6px}
+  .guild-bubble{width:48px;height:48px;min-height:48px;border-radius:16px}
+  aside#sidebar{width:calc(100vw - 66px)!important;left:66px!important;padding-left:14px!important;padding-right:14px!important}
+  .nav-open aside#sidebar{left:66px!important}
+  .server-context strong{max-width:180px}
+}
