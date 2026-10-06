@@ -8,3 +8,5 @@ nav a:nth-child(1){position:sticky;top:0;z-index:3;background:#071820}
 nav a:nth-child(2){position:sticky;top:49px;z-index:3;background:#071820}
 nav a:nth-child(3){position:sticky;top:98px;z-index:3;background:#071820;border-bottom:1px solid var(--stroke)}
 nav a:nth-child(1).active,nav a:nth-child(2).active,nav a:nth-child(3).active{background:linear-gradient(90deg,#15483f,#102c35)}
+
+.ark-map-card{cursor:pointer;transition:transform .18s,border-color .18s,background .18s}.ark-map-card:hover{transform:translateY(-2px);border-color:rgba(83,226,211,.45);background:rgba(12,38,48,.94)}.map-detail-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
