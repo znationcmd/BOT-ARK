@@ -4,7 +4,7 @@ const context=new AsyncLocalStorage();
 let pool;
 function connect(){
  if(!pool){if(!process.env.DATABASE_URL)throw Error('DATABASE_URL requis : connecter un Postgres à BOT ARK');
- pool=new Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:10000,idleTimeoutMillis:30000});
+ pool=new Pool({connectionString:process.env.DATABASE_URL,max:2,connectionTimeoutMillis:10000,idleTimeoutMillis:10000,allowExitOnIdle:true});
  pool.on('error',e=>console.error('Postgres :',e.code||e.name));}return pool;
 }
 async function query(sql,args=[]){return (context.getStore()||connect()).query(sql,args)}
