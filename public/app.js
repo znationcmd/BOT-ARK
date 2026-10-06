@@ -155,6 +155,33 @@ function table(headers,rows){if(!rows.length)return empty();return `<div class="
 function ticketsView(){return head('tickets',button('newTicket','new-ticket','','primary',true))+panel('tickets',table([tr('subject'),tr('players'),tr('progress'),tr('starts'),tr('view')],(state.tickets||[]).map(r=>[esc('#'+r.id+' '+r.title),esc(r.user_id),pill(r.status,r.status==='open'?'teal':''),esc(date(r.created_at)),button('view','view-ticket',r.id)])))}
 function playersView(){return head('players')+panel('players',table([tr('name'),tr('platform'),tr('gameId'),tr('verified'),tr('pass'),tr('edit')],(state.members||[]).map(m=>[esc(m.name),esc(m.platform),esc(m.game_id||'—'),m.verified?pill('verified','teal'):pill('pending'),pill(m.premium?'premium':'free',m.premium?'copper':''),button('edit','edit-member',m.user_id,'ghost small',true)])))}
 function seasonsView(){return head('seasons',button('newSeason','new-season','','primary',true))+panel('seasons',table([tr('title'),tr('starts'),tr('ends'),tr('xpPerTier'),tr('progress'),tr('edit')],(state.seasons||[]).map(s=>[esc(s.name),esc(date(s.starts_at)),esc(date(s.ends_at)),num(s.xp_per_tier),pill(s.status,s.status==='published'?'teal':''),`<div class="buttons">${s.status==='draft'?button('publish','publish-season',s.id,'primary small',true):''}${s.status!=='archived'?button('archive','archive-season',s.id,'ghost small',true):''}</div>`])))}
+function mapMedia(m){
+ const files={
+  'The Island':'The Island Topographic Map.jpg',
+  'Scorched Earth':'Scorched Earth Topographic Map.jpg',
+  'The Center':'The Center Topographic Map.jpg',
+  'Aberration':'Aberration Map.jpg',
+  'Extinction':'Extinction Topographic Map.jpg',
+  'Ragnarok':'Ragnarok Topographic Map.jpg',
+  'Valguero':'Valguero Topographic Map.jpg',
+  'Crystal Isles':'Crystal Isles Topographic Map.jpg',
+  'Fjordur':'Fjordur Topographic Map.jpg',
+  'Genesis: Part 1':'Genesis Part 1 Topographic Map.jpg',
+  'Genesis: Part 2':'Genesis Part 2 Map.jpg',
+  'Lost Colony':'Lost Colony Map ASA.jpg'
+ };
+ const pages={
+  'The Island':'The_Island','Scorched Earth':'Scorched_Earth','The Center':'The_Center','Aberration':'Aberration',
+  'Extinction':'Extinction','Ragnarok':'Ragnarok','Valguero':'Valguero','Crystal Isles':'Crystal_Isles','Fjordur':'Fjordur',
+  'Genesis: Part 1':'Genesis:_Part_1','Genesis: Part 2':'Genesis:_Part_2','Lost Colony':'Lost_Colony','Astraeos':'Astraeos','Club ARK':'Club_ARK'
+ };
+ const file=files[m.name];
+ return {
+  image:file?'https://ark.wiki.gg/wiki/Special:Redirect/file/'+encodeURIComponent(file):'/background.webp',
+  source:pages[m.name]?'https://ark.wiki.gg/wiki/'+pages[m.name]:null,
+  isMap:Boolean(file)
+ };
+}
 function mapDetails(m){
  const official={
   'The Island':{desc:'Carte emblématique d’ARK avec plages, jungles, montagnes, neige, grottes et boss.',dinos:['Rex','Raptor','Argentavis','Spino','Megalodon'],resources:['Métal','Cristal','Obsidienne','Huile','Silice'],poi:['Grottes','Montagnes','Obélisques','Île des herbivores']},
@@ -180,22 +207,26 @@ function mapDetails(m){
 }
 function mapDetailView(index){
  const m=ARK_MAPS[Number(index)];if(!m)return;
- const d=mapDetails(m),chips=arr=>arr.map(x=>'<span class="pill">'+esc(x)+'</span>').join('');
+ const d=mapDetails(m),media=mapMedia(m),chips=arr=>arr.map(x=>'<span class="pill">'+esc(x)+'</span>').join('');
  openModal('maps',`
   <div class="eyebrow">${m.type==='official'?'CARTE OFFICIELLE / DLC':'CARTE MOD / COMMUNAUTAIRE'}</div>
   <h2 style="margin:8px 0 12px">${esc(m.name)}</h2>
   <p class="muted">${esc(d.desc)}</p>
+  <figure class="ark-map-viewer ${media.isMap?'':'fallback'}">
+   <img src="${esc(media.image)}" alt="Carte ${esc(m.name)}" loading="eager" onerror="this.onerror=null;this.src='/background.webp';this.closest('figure')?.classList.add('fallback')">
+   <figcaption>${media.isMap?'Aperçu cartographique':'Aperçu visuel — carte communautaire ou source cartographique indisponible'}</figcaption>
+  </figure>
   <div class="grid two section-gap">
    <section class="guide-card"><h3>🦖 Dinos & créatures</h3><div class="map-detail-chips">${chips(d.dinos)}</div></section>
    <section class="guide-card"><h3>⛏ Ressources</h3><div class="map-detail-chips">${chips(d.resources)}</div></section>
    <section class="guide-card"><h3>⌖ Points d’intérêt</h3><div class="map-detail-chips">${chips(d.poi)}</div></section>
    <section class="guide-card"><h3>ℹ Infos</h3><p class="muted">Type : ${m.type==='official'?'Officielle / DLC':'Mod / communautaire'}<br>Jeu : ARK: Survival Ascended<br>Catalogue BOT ARK : actif</p></section>
   </div>
-  <div class="notice teal section-gap">Les cartes mod peuvent changer à chaque mise à jour. BOT ARK affiche les informations vérifiées quand elles sont disponibles.</div>
-  <div class="form-actions"><button type="button" class="ghost" data-action="modal-close">Fermer</button></div>
+  <div class="notice teal section-gap">Les cartes officielles utilisent un aperçu de l’ARK Official Community Wiki. Pour les cartes mod, un visuel de secours s’affiche tant qu’aucune source cartographique stable n’est disponible.</div>
+  <div class="form-actions">${media.source?`<a class="ghost" href="${esc(media.source)}" target="_blank" rel="noopener noreferrer">Carte / source détaillée ↗</a>`:''}<button type="button" class="ghost" data-action="modal-close">Fermer</button></div>
  `);
 }
-function mapsView(){const card=(m,i)=>`<article class="reward-card ark-map-card" data-kind="${m.type}" data-search="${esc(m.name.toLowerCase())}" data-action="map-detail" data-id="${i}" role="button" tabindex="0"><span class="reward-symbol">⌖</span><h3>${esc(m.name)}</h3><span class="pill ${m.type==='official'?'teal':''}">${m.type==='official'?'OFFICIELLE / DLC':'MOD / COMMUNAUTAIRE'}</span><p class="muted">${esc(mapDetails(m).desc)}</p><span class="xp-tag">Voir la fiche détaillée →</span></article>`;return head('maps')+`<section class="panel"><div class="panel-head"><div><h2>Toutes les cartes ARK</h2><p class="muted">${ARK_MAPS.length} cartes intégrées au catalogue. Touche une carte pour ouvrir sa fiche détaillée.</p></div></div><div class="tabs"><button class="primary small ark-map-filter" data-map-filter="all">Toutes</button><button class="ghost small ark-map-filter" data-map-filter="official">Officielles</button><button class="ghost small ark-map-filter" data-map-filter="mod">Mods</button></div><div class="reference-search"><input id="ark-map-search" placeholder="Rechercher une carte ARK…" autocomplete="off"></div><div id="ark-map-grid" class="grid section-gap">${ARK_MAPS.map((m,i)=>card(m,i)).join('')}</div><div id="ark-map-empty" class="empty" hidden>Aucune carte trouvée.</div></section>`}
+function mapsView(){const card=(m,i)=>{const media=mapMedia(m);return `<article class="reward-card ark-map-card" data-kind="${m.type}" data-search="${esc(m.name.toLowerCase())}" data-action="map-detail" data-id="${i}" role="button" tabindex="0" aria-label="Ouvrir la carte ${esc(m.name)}"><img class="ark-map-thumb ${media.isMap?'':'fallback'}" src="${esc(media.image)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/background.webp';this.classList.add('fallback')"><h3>${esc(m.name)}</h3><span class="pill ${m.type==='official'?'teal':''}">${m.type==='official'?'OFFICIELLE / DLC':'MOD / COMMUNAUTAIRE'}</span><p class="muted">${esc(mapDetails(m).desc)}</p><span class="xp-tag">Voir la carte et la fiche →</span></article>`};return head('maps')+`<section class="panel"><div class="panel-head"><div><h2>Toutes les cartes ARK</h2><p class="muted">${ARK_MAPS.length} cartes intégrées au catalogue. Les cartes officielles affichent un aperçu cartographique ; les cartes communautaires gardent un fallback propre si aucune source stable n’est disponible.</p></div></div><div class="tabs"><button class="primary small ark-map-filter" data-map-filter="all">Toutes</button><button class="ghost small ark-map-filter" data-map-filter="official">Officielles</button><button class="ghost small ark-map-filter" data-map-filter="mod">Mods</button></div><div class="reference-search"><input id="ark-map-search" placeholder="Rechercher une carte ARK…" autocomplete="off"></div><div id="ark-map-grid" class="grid section-gap">${ARK_MAPS.map((m,i)=>card(m,i)).join('')}</div><div id="ark-map-empty" class="empty" hidden>Aucune carte trouvée.</div></section>`}
 
 function encyclopediaView(){return head('encyclopedia')+`<div class="grid three"><article class="guide-card"><h2>Dinos</h2><p>Créatures, apprivoisement et informations.</p></article><article class="guide-card"><h2>Ressources</h2><p>Matériaux et emplacements.</p></article><article class="guide-card"><h2>Recettes</h2><p>Craft, cuisine, kibble et consommables.</p></article></div>`}
 function shopView(){return head('shop')+`<section class="panel"><div class="eyebrow">BOT ARK SHOP</div><h2>Shop serveur</h2><p class="muted">Catalogue d’items, prix, banque RP et commandes. La livraison automatique sera activée uniquement via une connexion serveur compatible.</p></section>`}
@@ -260,7 +291,7 @@ function bindMapCatalog(){const input=$('#ark-map-search'),grid=$('#ark-map-grid
 function bindPortalCatalog(){const input=$('#portal-search'),select=$('#portal-tag'),grid=$('#portal-grid');if(!grid)return;const apply=()=>{const q=(input?.value||'').trim().toLowerCase(),tag=select?.value||'';let shown=0;grid.querySelectorAll('.portal-card').forEach(card=>{const okText=!q||(card.dataset.search||'').includes(q),okTag=!tag||(card.dataset.tags||'').includes(tag);card.hidden=!(okText&&okTag);if(!card.hidden)shown++});const empty=$('#portal-empty');if(empty)empty.hidden=shown!==0};if(input)input.oninput=apply;if(select)select.onchange=apply;apply()}
 function bindForms(){bindPortalCatalog();bindMapCatalog();bindRecipeCatalog();bindForm('#login-form',async f=>{demo=false;selectedGuild='';await api('/api/login',Object.fromEntries(f))});bindForm('#guild-form',f=>api('/api/guilds',Object.fromEntries(f)));bindForm('#discord-form',f=>api('/api/setup/discord',Object.fromEntries(f)));bindForm('#settings-form',f=>api('/api/settings',Object.fromEntries(f)));const ai=$('#ai-form');if(ai)ai.onsubmit=e=>{e.preventDefault();if(!aiReady||aiBusy)return;const question=new FormData(ai).get('question');aiMessages.push({role:'user',content:question});aiBusy=true;render();worker.postMessage({type:'ask',question,language})}}
 function startAI(){if(aiReady)return;toast(tr('loading'));if(!worker){worker=new Worker('/ai-worker.js',{type:'module'});worker.onmessage=({data})=>{if(data.type==='ready'){aiReady=true;toast(tr('aiReady'));render()}else if(data.type==='answer'){aiBusy=false;aiMessages.push({role:'ai',content:data.answer});if(page==='assistant')render()}else if(data.type==='progress'){const status=$('#ai-status');if(status)status.textContent=data.progress?num(Math.round(data.progress))+' %':tr('loading')}else if(data.type==='error'){aiBusy=false;aiReady=false;worker?.terminate();worker=null;toast(tr('aiError'),true);if(page==='assistant')render()}};worker.onerror=()=>{aiBusy=false;worker?.terminate();worker=null;aiReady=false;toast(tr('aiError'),true)}}worker.postMessage({type:'load',language})}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const b=e.target.closest('.ark-map-card[data-action]');if(!b)return;e.preventDefault();action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});
 $('#menu').onclick=()=>{document.body.classList.toggle('nav-open');$('#shade').hidden=!document.body.classList.contains('nav-open')};$('#shade').onclick=()=>{document.body.classList.remove('nav-open');$('#shade').hidden=true};
 $('#account').onclick=async()=>{if(demo){demo=false;selectedGuild='';me={loggedIn:false,role:null,guilds:[],bot:{}};state={};}else if(me.loggedIn){await api('/api/logout',{});selectedGuild='';}location.hash='home';await refresh()};
 $('#language').onchange=async e=>{language=e.target.value;localStorage.setItem('bot-ark-language',language);if(me.loggedIn&&!demo)await api('/api/language',{language}).catch(()=>{});if(demo)state=demoState();await render()};$('#guild-select').onchange=async e=>{selectedGuild=e.target.value;await api('/api/guild/select',{id:selectedGuild});await refresh()};
