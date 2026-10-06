@@ -101,12 +101,19 @@ function navigation(){
 }
 function initials(name){return String(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?'}
 function renderGuildRail(){
- const rail=$('#guild-rail'),context=$('#server-context');if(!rail||!context)return;
- if(!me.loggedIn||!me.guilds?.length){rail.innerHTML='';context.innerHTML='<strong>BOT ARK</strong><small>Discord non sélectionné</small>';return}
- rail.innerHTML=me.guilds.map(g=>`<button type="button" class="guild-bubble ${g.id===selectedGuild?'active':''}" data-guild="${esc(g.id)}" title="${esc(g.name)}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`).join('');
+ const rail=$('#guild-rail'),context=$('#server-context'),strip=$('#mobile-guild-strip');if(!rail||!context)return;
+ if(!me.loggedIn||!me.guilds?.length){
+  rail.innerHTML='';context.innerHTML='<strong>BOT ARK</strong><small>Discord non sélectionné</small>';
+  if(strip){strip.innerHTML='';strip.hidden=true}
+  return;
+ }
+ const bubbles=me.guilds.map(g=>`<button type="button" class="guild-bubble ${g.id===selectedGuild?'active':''}" data-guild="${esc(g.id)}" title="${esc(g.name)}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`).join('');
+ rail.innerHTML=bubbles;
+ if(strip){strip.hidden=false;strip.innerHTML=`<strong>DISCORD</strong><div class="mobile-guild-scroll">${bubbles}</div>`}
  const current=me.guilds.find(g=>g.id===selectedGuild)||me.guilds[0];
  context.innerHTML=`<div class="server-context-icon">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div><strong>${esc(current.name)}</strong><small>Bot installé · ${num(current.memberCount||0)} membre(s)</small></div>`;
- rail.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
+ const bind=root=>root?.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
+ bind(rail);bind(strip);
 }
 function bindModuleSearch(){
  const input=$('#module-search');if(!input)return;input.value='';

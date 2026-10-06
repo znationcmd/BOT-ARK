@@ -86,11 +86,13 @@ async function start(credentials){if(connecting)fail('working');connecting=true;
  candidate.on('messageReactionAdd',(r,u)=>modules.handleReaction(candidate,r,u).catch(e=>console.error('Starboard :',e.code||e.name)));
  candidate.on('messageCreate',async m=>{if(m.author.bot||!m.guildId)return;try{await modules.handleMessage(candidate,m);const ticket=await db.one("SELECT * FROM ark_tickets WHERE channel_id=$1 AND status='open'",[m.channelId]);if(!ticket)return;const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[m.guildId]))?.config||{};const staff=isManager(m.guild,m.member)||m.member.roles.cache.has(config.staff_role_id);await s.ticketMessage(m.guildId,m.author.id,m.author.username,ticket.id,m.content,staff,m.id)}catch(e){console.error('Message Discord :',e.code||e.name)}});
  const ready=new Promise((resolve,reject)=>{readyTimeout=setTimeout(()=>reject(Error('timeout')),20000);candidate.once('clientReady',()=>{clearTimeout(readyTimeout);resolve()});});
- ready.catch(()=>{});await candidate.login(token);await ready;await rest.put(Routes.applicationCommands(id),{body:commands()});
- for(const g of candidate.guilds.cache.values())await s.guild(g.id,g.name);
+ ready.catch(()=>{});await candidate.login(token);await ready;
+ const old=client;client=candidate;applicationId=id;lastError=null;old?.destroy();console.log('BOT ARK connecté :',client.user.tag);
+ try{await rest.put(Routes.applicationCommands(id),{body:commands()})}catch(e){lastError='discordCommands';console.error('BOT ARK · commandes Discord :',e.code||e.message||e.name)}
+ for(const g of client.guilds.cache.values())await s.guild(g.id,g.name);
  if(credentials)await db.query("INSERT INTO ark_system(key,value) VALUES('discord',$1) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value",[vault.encrypt(JSON.stringify({token,clientId:id}))]);
- const old=client;client=candidate;applicationId=id;lastError=null;old?.destroy();console.log('BOT ARK connecté :',client.user.tag);return status();
- }catch(e){candidate?.destroy();lastError='discordError';if(credentials)fail('discordError',400);console.error('BOT ARK : Discord non connecté');return status()}finally{clearTimeout(readyTimeout);connecting=false}}
+ return status();
+ }catch(e){candidate?.destroy();lastError='discordError';if(credentials)fail('discordError',400);console.error('BOT ARK : Discord non connecté :',e.code||e.message||e.name);return status()}finally{clearTimeout(readyTimeout);connecting=false}}
 let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),15000);auditTimer.unref();

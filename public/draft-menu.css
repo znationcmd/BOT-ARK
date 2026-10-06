@@ -155,3 +155,27 @@ aside#sidebar{
   .draft-mobile-header>.draft-header-button,
   .draft-header-actions>.draft-header-button{width:48px!important;height:48px!important;min-width:48px!important}
 }
+
+
+/* BOT ARK · Discord strip visible on mobile v6 */
+.mobile-guild-strip{display:none}
+@media(max-width:1100px){
+  .mobile-guild-strip:not([hidden]){
+    position:fixed;left:0;right:0;top:calc(var(--draft-header) + env(safe-area-inset-top,0px));z-index:61;
+    height:66px;padding:7px 10px;display:flex;align-items:center;gap:10px;
+    background:rgba(18,24,28,.96);border-bottom:1px solid rgba(83,226,211,.18);box-shadow:0 8px 22px #0005;
+    backdrop-filter:blur(16px)
+  }
+  .mobile-guild-strip>strong{font-size:10px;letter-spacing:.14em;color:#7f9299;writing-mode:vertical-rl;transform:rotate(180deg)}
+  .mobile-guild-scroll{display:flex;align-items:center;gap:9px;overflow-x:auto;overflow-y:hidden;min-width:0;flex:1;padding:2px 1px;scrollbar-width:none}
+  .mobile-guild-scroll::-webkit-scrollbar{display:none}
+  .mobile-guild-strip .guild-bubble{width:46px;height:46px;min-width:46px;min-height:46px;border-radius:50%;flex:0 0 46px}
+  .mobile-guild-strip .guild-bubble.active:before{display:none}
+  body.nav-open .mobile-guild-strip{display:none!important}
+  .workspace{padding-top:calc(var(--draft-header) + 66px + env(safe-area-inset-top,0px))!important}
+}
+@media(max-width:520px){
+  .mobile-guild-strip:not([hidden]){height:62px;padding:6px 8px}
+  .mobile-guild-strip .guild-bubble{width:43px;height:43px;min-width:43px;min-height:43px;flex-basis:43px}
+  .workspace{padding-top:calc(var(--draft-header) + 62px + env(safe-area-inset-top,0px))!important}
+}
