@@ -1,10 +1,10 @@
 const express=require('express'),session=require('express-session'),helmet=require('helmet'),crypto=require('crypto'),path=require('path');
-const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session'),premium=require('./premium');
+const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session'),premium=require('./premium'),fileValidator=require('./file-validator');
 const {fail}=require('./errors');
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res,next)).catch(next);
 const safeConfig=c=>{const {nitrado_token_enc,webhook_secret_hash,...safe}=c;return {...safe,nitradoConnected:Boolean(nitrado_token_enc),webhookReady:Boolean(webhook_secret_hash)}};
 function app(){
- const app=express();app.set('trust proxy',1);app.use(helmet({contentSecurityPolicy:false}));app.use(express.json({limit:'1100kb'}));
+ const app=express();app.set('trust proxy',1);app.use(helmet({contentSecurityPolicy:false}));app.use(express.json({limit:'6mb'}));
  app.use(session({secret:process.env.SESSION_SECRET,store:new Store(),resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:365*86400000}}));
  app.use((req,res,next)=>{const shared=req.path.startsWith('/api/top-servers');if(req.path.startsWith('/api/'))res.set('Cache-Control','no-store');if(shared){res.set('Access-Control-Allow-Origin','*');res.set('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.set('Access-Control-Allow-Headers','Content-Type');if(req.method==='OPTIONS')return res.sendStatus(204)}if(!shared&&['POST','PATCH','PUT','DELETE'].includes(req.method)&&req.headers.origin){try{if(new URL(req.headers.origin).host!==req.get('host'))fail('forbidden',403)}catch(e){return next(e)}}next()});
  const route=(method,url,...handlers)=>app[method](url,...handlers.map(asyncRoute));
@@ -59,6 +59,7 @@ function app(){
  route('get','/api/top-servers',async(req,res)=>res.json(await s.topServers()));
  route('post','/api/top-servers',async(req,res)=>{const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');const ownerSession=req.session?.role==='owner';if(!ownerSession&&(!process.env.TOP_SERVERS_WRITE_KEY||supplied!==process.env.TOP_SERVERS_WRITE_KEY))fail('forbidden',403);res.json(await s.saveTopServer(ownerSession?actor(req):'network',req.body||{}));});
  route('post','/api/top-servers/:id/vote',async(req,res)=>res.json(await s.voteTopServer(req.params.id,req.ip,req.get('user-agent')||'')));
+ route('post','/api/file-validator',login,staff,async(req,res)=>res.json(fileValidator.validateFile(String(req.body.filename||''),String(req.body.content||''))));
  route('get','/api/premium/plans',async(req,res)=>res.json({paypalUrl:premium.PAYPAL_URL,plans:premium.PLANS}));
  route('get','/api/premium',login,scope,async(req,res)=>res.json(await premium.status(req.g,actor(req))));
  route('post','/api/premium/payment-request',login,scope,async(req,res)=>res.json(await premium.requestPayment(req.g,actor(req),String(req.body.product||''),String(req.body.billing||''))));
