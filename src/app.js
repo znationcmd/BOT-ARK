@@ -1,5 +1,5 @@
 const express=require('express'),session=require('express-session'),helmet=require('helmet'),crypto=require('crypto'),path=require('path');
-const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session');
+const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session'),premium=require('./premium');
 const {fail}=require('./errors');
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res,next)).catch(next);
 const safeConfig=c=>{const {nitrado_token_enc,webhook_secret_hash,...safe}=c;return {...safe,nitradoConnected:Boolean(nitrado_token_enc),webhookReady:Boolean(webhook_secret_hash)}};
