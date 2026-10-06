@@ -1,5 +1,5 @@
 const express=require('express'),session=require('express-session'),helmet=require('helmet'),crypto=require('crypto'),path=require('path');
-const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session'),premium=require('./premium'),fileValidator=require('./file-validator');
+const db=require('./db'),s=require('./service'),v=require('./validation'),bot=require('./bot'),nitrado=require('./nitrado'),vault=require('./crypto'),Store=require('./session'),premium=require('./premium'),fileValidator=require('./file-validator'),modules=require('./modules');
 const {fail}=require('./errors');
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res,next)).catch(next);
 const safeConfig=c=>{const {nitrado_token_enc,webhook_secret_hash,...safe}=c;return {...safe,nitradoConnected:Boolean(nitrado_token_enc),webhookReady:Boolean(webhook_secret_hash)}};
@@ -25,6 +25,10 @@ function app(){
  route('post','/api/guilds',login,owner,async(req,res)=>{const id=v.id.parse(req.body.id),name=v.text(100).parse(req.body.name);await s.guild(id,name);req.session.guildId=id;await save(req);res.json({ok:true})});
  route('post','/api/guild/select',login,async(req,res)=>{const id=v.id.parse(req.body.id);if(req.session.role!=='owner'&&id!==req.session.guildId)fail('forbidden',403);if(!await db.one('SELECT id FROM ark_guilds WHERE id=$1',[id]))fail('notFound',404);req.session.guildId=id;await save(req);res.json({ok:true})});
  route('get','/api/state',login,scope,async(req,res)=>{res.json(await s.snapshot(req.g,actor(req),req.session.role!=='player'))});
+ route('get','/api/modules',login,scope,async(req,res)=>res.json(await modules.list(req.g)));
+ route('get','/api/modules/:key',login,scope,async(req,res)=>res.json({module:await modules.get(req.g,req.params.key),records:await modules.records(req.g,req.params.key,100)}));
+ route('post','/api/modules/:key',login,owner,scope,async(req,res)=>res.json(await modules.save(req.g,req.params.key,req.body||{})));
+ route('get','/api/discord/channels',login,scope,async(req,res)=>res.json(await bot.guildChannels(req.g)));
  route('post','/api/seasons',login,staff,scope,async(req,res)=>res.json(await s.createSeason(req.g,actor(req),req.body)));
  route('post','/api/seasons/:id/publish',login,staff,scope,async(req,res)=>{await s.publishSeason(req.g,actor(req),req.params.id);res.json({ok:true})});
  route('post','/api/seasons/:id/archive',login,staff,scope,async(req,res)=>{await s.archiveSeason(req.g,actor(req),req.params.id);res.json({ok:true})});
