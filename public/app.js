@@ -253,7 +253,7 @@ async function settingsView(){let config={language,staff_role_id:'',ticket_categ
 async function premiumView(){
  const publicData=await fetch('/api/premium/plans',{cache:'no-store'}).then(r=>r.json()).catch(()=>({plans:{},paypalUrl:'https://www.paypal.me/ZnationCmdofficiel'}));
  let own=null,admin=null;
- if(me.loggedIn&&selectedGuild&&!demo){own=await api('/api/premium').catch(()=>null);if(me.role==='owner')admin=await api('/api/premium/admin').catch(()=>null);}
+ if(me.loggedIn&&!demo){own=await api('/api/premium').catch(()=>null);if(me.role==='owner')admin=await api('/api/premium/admin').catch(()=>null);}
  const plans=publicData.plans||{};
  const card=(product,title,desc)=>{
    const p=plans[product]||{},sub=own?.[product==='multiserver'?'multiserver':'battlepass'];
