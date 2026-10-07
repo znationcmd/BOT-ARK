@@ -95,7 +95,7 @@ function navigation(){
  $('#language').value=language;$('#page-title').textContent=labelFor(page);
  document.documentElement.lang=language;document.title=`BOT ARK · ${labelFor(page)}`;
  const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;
- if(!select.hidden){select.innerHTML=me.guilds.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}
+ if(!select.hidden){select.innerHTML=me.guilds.filter(g=>g.installed!==false).map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}
  renderGuildRail();
  bindModuleSearch();
 }
@@ -114,8 +114,8 @@ function renderGuildRail(){ensureGuildVisualStyles();
  rail.innerHTML=bubbles;
  if(strip){strip.hidden=false;strip.innerHTML=`<strong>DISCORD</strong><div class="mobile-guild-scroll">${bubbles}</div>`}
  const current=me.guilds.find(g=>g.id===selectedGuild)||me.guilds[0];
- {const installed=current.installed!==false;context.innerHTML=`<div class="server-context-icon ${installed?'':'not-installed'}">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div class="${installed?'':'guild-muted'}"><strong>${esc(current.name)}</strong><small>${installed?'Bot installé':'Bot non installé'} · ${num(current.memberCount||0)} membre(s)</small></div><a class="smallbtn" href="${esc(inviteBotUrl(installed?'':current.id))}" target="_blank" rel="noopener">＋ ${esc(tr('inviteBot'))}</a>`;}
- const bind=root=>root?.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(b.dataset.installed==='0'){window.open(inviteBotUrl(id),'_blank','noopener');return}if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
+ {const installed=current.installed!==false;context.innerHTML=`<div class="server-context-icon ${installed?'':'not-installed'}">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div class="${installed?'':'guild-muted'}"><strong>${esc(current.name)}</strong><small>${installed?'Bot installé':'Bot non installé'} · ${num(current.memberCount||0)} membre(s)</small></div>${installed?`<a class="smallbtn" href="${esc(inviteBotUrl())}" target="_blank" rel="noopener">＋ ${esc(tr('inviteBot'))}</a>`:`<button class="smallbtn" type="button" onclick="installGuildFlow('${esc(current.id)}')">＋ ${esc(tr('inviteBot'))}</button>`}`;}
+ const bind=root=>root?.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(b.dataset.installed==='0'){await installGuildFlow(id);return}if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
  bind(rail);bind(strip);
 }
 function bindModuleSearch(){
