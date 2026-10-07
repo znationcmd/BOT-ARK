@@ -32,7 +32,8 @@ async function accessibleGuilds(userId){
   for(const guild of client.guilds.cache.values()){
     try{
       const member=await guild.members.fetch(userId);
-      out.push({id:guild.id,name:guild.name,icon:guild.iconURL({extension:'webp',size:128})||null,ownerId:guild.ownerId,memberCount:guild.memberCount||0,installed:true,role:isManager(guild,member)?'admin':'player'});
+      if(!isManager(guild,member))continue;
+      out.push({id:guild.id,name:guild.name,icon:guild.iconURL({extension:'webp',size:128})||null,ownerId:guild.ownerId,memberCount:guild.memberCount||0,installed:true,manageable:true,owned:guild.ownerId===userId,role:'admin'});
     }catch{}
   }
   return out.sort((a,b)=>a.name.localeCompare(b.name,'fr'));
