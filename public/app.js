@@ -460,10 +460,12 @@ $('#language').onchange=async e=>{language=e.target.value;localStorage.setItem('
 $('#install').onclick=()=>action('install').catch(err=>toast(tr(err.message),true));
 window.addEventListener('hashchange',()=>{const hash=location.hash.slice(1);if(hash.startsWith('login='))return;page=nav.some(([k])=>k===hash)?hash:'home';document.body.classList.remove('nav-open');$('#shade').hidden=true;render().catch(err=>toast(tr(err.message),true))});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e});window.addEventListener('online',()=>refresh().catch(()=>{}));window.addEventListener('offline',()=>render());
-async function boot(){page=location.hash.slice(1)||'home';try{const hash=location.hash.slice(1);if(hash.startsWith('login=')){const token=hash.slice(6);history.replaceState(null,'',location.pathname);page='home';await api('/api/discord-login',{token})}await refresh()}catch(err){me.loggedIn=false;await render();toast(tr(err.message),true)}if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js?v=24',{updateViaCache:'none'}).catch(()=>{})}
+async function boot(){page=location.hash.slice(1)||'home';try{const hash=location.hash.slice(1);if(hash.startsWith('login=')){const token=hash.slice(6);history.replaceState(null,'',location.pathname);page='home';await api('/api/discord-login',{token})}await refresh()}catch(err){me.loggedIn=false;await render();toast(tr(err.message),true)}}
 boot();
 
-let arkReloading=false,arkSwRegistration=null;
+let arkSwRegistration=null;
+const ARK_PWA_VERSION='25';
+const ARK_RELOAD_KEY='bot-ark-pwa-reloaded-'+ARK_PWA_VERSION;
 async function forceAppRefresh(){
  const buttons=['force-refresh','draft-refresh'].map(id=>document.getElementById(id)).filter(Boolean);
  buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='…'});
@@ -473,45 +475,26 @@ async function forceAppRefresh(){
    await Promise.all(keys.filter(k=>k.startsWith('bot-ark-shell-')).map(k=>caches.delete(k)));
   }
   if('serviceWorker' in navigator){
-   arkSwRegistration=arkSwRegistration||await navigator.serviceWorker.getRegistration('/');
-   if(arkSwRegistration){
-    await arkSwRegistration.update();
-    if(arkSwRegistration.waiting){
-     arkSwRegistration.waiting.postMessage({type:'SKIP_WAITING'});
-     setTimeout(()=>location.reload(),900);
-     return;
-    }
-   }
+   arkSwRegistration=await navigator.serviceWorker.register('/sw.js?v='+ARK_PWA_VERSION,{scope:'/',updateViaCache:'none'});
+   await arkSwRegistration.update().catch(()=>{});
   }
-  location.reload();
- }catch(e){location.reload()}finally{
-  buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'↻'});
- }
-}
-async function checkArkUpdate(){
- if(!('serviceWorker' in navigator)||!navigator.onLine)return;
- try{
-  arkSwRegistration=arkSwRegistration||await navigator.serviceWorker.getRegistration('/');
-  if(!arkSwRegistration)return;
-  await arkSwRegistration.update();
-  if(arkSwRegistration.waiting)arkSwRegistration.waiting.postMessage({type:'SKIP_WAITING'});
  }catch{}
+ location.reload();
 }
 if('serviceWorker' in navigator){
- navigator.serviceWorker.addEventListener('controllerchange',()=>{if(arkReloading)return;arkReloading=true;location.reload()});
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+  try{
+   if(sessionStorage.getItem(ARK_RELOAD_KEY)==='1')return;
+   sessionStorage.setItem(ARK_RELOAD_KEY,'1');
+  }catch{}
+  location.reload();
+ });
  window.addEventListener('load',async()=>{
   try{
-   arkSwRegistration=await navigator.serviceWorker.register('/sw.js?v=24',{scope:'/',updateViaCache:'none'});
-   arkSwRegistration.addEventListener('updatefound',()=>{
-    const sw=arkSwRegistration.installing;if(!sw)return;
-    sw.addEventListener('statechange',()=>{if(sw.state==='installed'&&navigator.serviceWorker.controller)sw.postMessage({type:'SKIP_WAITING'})});
-   });
-   await arkSwRegistration.update();
+   arkSwRegistration=await navigator.serviceWorker.register('/sw.js?v='+ARK_PWA_VERSION,{scope:'/',updateViaCache:'none'});
+   await arkSwRegistration.update().catch(()=>{});
   }catch{}
  });
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkArkUpdate()});
- window.addEventListener('focus',checkArkUpdate);
- setInterval(checkArkUpdate,10*60*1000);
 }
 document.getElementById('force-refresh')?.addEventListener('click',forceAppRefresh);
 window.forceAppRefresh=forceAppRefresh;
