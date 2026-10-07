@@ -101,19 +101,20 @@ function navigation(){
 }
 function inviteBotUrl(guildId=''){const base=me.bot?.inviteUrl||'';if(!base)return '#';try{const u=new URL(base);if(guildId)u.searchParams.set('guild_id',guildId);u.searchParams.set('disable_guild_select','false');return u.toString()}catch{return base}}
 function initials(name){return String(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?'}
-function renderGuildRail(){
+function ensureGuildVisualStyles(){if(document.getElementById('guild-visual-styles'))return;const s=document.createElement('style');s.id='guild-visual-styles';s.textContent='.guild-bubble.not-installed{opacity:.46;filter:grayscale(.72);border-style:dashed}.guild-bubble.not-installed:hover{opacity:.78;filter:grayscale(.35)}.server-context-icon.not-installed{opacity:.52;filter:grayscale(.72)}.guild-muted{opacity:.62}';document.head.appendChild(s)}
+function renderGuildRail(){ensureGuildVisualStyles();
  const rail=$('#guild-rail'),context=$('#server-context'),strip=$('#mobile-guild-strip');if(!rail||!context)return;
  if(!me.loggedIn||!me.guilds?.length){
   rail.innerHTML='';context.innerHTML=`<strong>BOT ARK</strong><small>Discord non sélectionné</small>${me.bot?.inviteUrl?`<a class="smallbtn" href="${esc(inviteBotUrl())}" target="_blank" rel="noopener">＋ ${esc(tr('inviteBot'))}</a>`:''}`;
   if(strip){strip.innerHTML='';strip.hidden=true}
   return;
  }
- const bubbles=me.guilds.map(g=>`<button type="button" class="guild-bubble ${g.id===selectedGuild?'active':''}" data-guild="${esc(g.id)}" title="${esc(g.name)}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`).join('');
+ const bubbles=me.guilds.map(g=>{const installed=g.installed!==false;return `<button type="button" class="guild-bubble ${installed?'':'not-installed'} ${g.id===selectedGuild&&installed?'active':''}" data-guild="${esc(g.id)}" data-installed="${installed?'1':'0'}" title="${esc(g.name)}${installed?'':' · Bot non installé'}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`}).join('');
  rail.innerHTML=bubbles;
  if(strip){strip.hidden=false;strip.innerHTML=`<strong>DISCORD</strong><div class="mobile-guild-scroll">${bubbles}</div>`}
  const current=me.guilds.find(g=>g.id===selectedGuild)||me.guilds[0];
- context.innerHTML=`<div class="server-context-icon">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div><strong>${esc(current.name)}</strong><small>Bot installé · ${num(current.memberCount||0)} membre(s)</small></div><a class="smallbtn" href="${esc(inviteBotUrl())}" target="_blank" rel="noopener">＋ ${esc(tr('inviteBot'))}</a>`;
- const bind=root=>root?.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
+ {const installed=current.installed!==false;context.innerHTML=`<div class="server-context-icon ${installed?'':'not-installed'}">${current.icon?`<img src="${esc(current.icon)}" alt="">`:`<span>${esc(initials(current.name))}</span>`}</div><div class="${installed?'':'guild-muted'}"><strong>${esc(current.name)}</strong><small>${installed?'Bot installé':'Bot non installé'} · ${num(current.memberCount||0)} membre(s)</small></div><a class="smallbtn" href="${esc(inviteBotUrl(installed?'':current.id))}" target="_blank" rel="noopener">＋ ${esc(tr('inviteBot'))}</a>`;}
+ const bind=root=>root?.querySelectorAll('[data-guild]').forEach(b=>b.onclick=async()=>{const id=b.dataset.guild;if(b.dataset.installed==='0'){window.open(inviteBotUrl(id),'_blank','noopener');return}if(id===selectedGuild)return;selectedGuild=id;await api('/api/guild/select',{id});await refresh();});
  bind(rail);bind(strip);
 }
 function bindModuleSearch(){
