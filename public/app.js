@@ -148,12 +148,15 @@ function loginView(){
    <div id="portal-empty" class="portal-empty" hidden>Aucun outil trouvé.</div>
    <div class="portal-connect">
     <div><div class="eyebrow">ACCÈS SERVEUR</div><h2>Connecte ton serveur Discord</h2><p>Pour gérer les joueurs, tickets, quêtes, saisons, économie et paramètres du bot.</p></div>
-    <form id="login-form" class="portal-login-form">
-      <input name="username" autocomplete="username" placeholder="${esc(tr('username'))}" required>
-      <input name="password" type="password" autocomplete="current-password" placeholder="${esc(tr('password'))}" required>
-      <div class="form-error" id="login-error" role="alert"></div>
-      <button class="primary">Connexion propriétaire</button>
-    </form>
+    <div class="portal-login-form">
+      <a class="primary" href="/auth/discord-account" style="display:flex;align-items:center;justify-content:center;text-decoration:none">◈ Connexion avec Discord</a>
+      <form id="login-form" class="portal-login-form">
+        <input name="username" autocomplete="username" placeholder="${esc(tr('username'))}" required>
+        <input name="password" type="password" autocomplete="current-password" placeholder="${esc(tr('password'))}" required>
+        <div class="form-error" id="login-error" role="alert"></div>
+        <button class="ghost">Connexion propriétaire CMD</button>
+      </form>
+    </div>
     <div class="portal-connect-actions">
       <button type="button" class="ghost" data-action="demo">Aperçu du Dashboard</button>
       <a class="portal-discord" href="https://discord.gg/53EKbkKvyn" target="_blank" rel="noopener">Rejoindre Discord ↗</a>
