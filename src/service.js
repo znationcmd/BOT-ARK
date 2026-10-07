@@ -93,7 +93,116 @@ function topUrl(value){const s=topOptional(value,500);if(s&&!/^https?:\/\//i.tes
 function officialSource(value){return ['DAYZ GATE','BOT ARK','EXTINCTION ++ RSS','CMD TOP SERVEUR','CMD Top Serveur'].includes(String(value||''))}
 async function topServers(filters={}){
  const args=[],where=['s.enabled=TRUE'];
- if(filters.game){args.push(String(filters.game).trim().toLowerCase());where.push('LOWER(s.game)=$'+args.length)}
+ if(filters.id){args.push(String(filters.id));where.push('s.id=
+ if(filters.q){args.push('%'+String(filters.q).trim().toLowerCase().slice(0,100)+'%');where.push("(LOWER(s.name) LIKE $"+args.length+" OR LOWER(s.description) LIKE $"+args.length+" OR LOWER(s.game) LIKE $"+args.length+")")}
+ const sort=String(filters.sort||'monthly');
+ const order=sort==='votes'?'votes DESC,votes_month DESC':sort==='new'?'s.created_at DESC':sort==='clicks'?'clicks_month DESC,votes_month DESC':'votes_month DESC,votes_24h DESC,votes DESC';
+ const limit=Math.max(1,Math.min(100,Number(filters.limit)||100));args.push(limit);
+ return db.all(`SELECT s.id,s.guild_id,s.name,s.game,s.map,s.platform,s.address,s.website,s.discord_url,s.description,s.image_url,s.source_bot,s.verified,s.created_at,s.updated_at,
+  COUNT(DISTINCT v.id)::int AS votes,
+  COUNT(DISTINCT v.id) FILTER (WHERE v.created_at>=date_trunc('month',NOW()))::int AS votes_month,
+  COUNT(DISTINCT v.id) FILTER (WHERE v.created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h,
+  COUNT(DISTINCT vi.id)::int AS clicks,
+  COUNT(DISTINCT vi.id) FILTER (WHERE vi.created_at>=date_trunc('month',NOW()))::int AS clicks_month,
+  COUNT(DISTINCT vi.id) FILTER (WHERE vi.created_at>=NOW()-INTERVAL '24 hours')::int AS clicks_24h
+  FROM shared_top_servers s
+  LEFT JOIN shared_top_server_votes v ON v.server_id=s.id
+  LEFT JOIN shared_top_server_visits vi ON vi.server_id=s.id
+  WHERE ${where.join(' AND ')}
+  GROUP BY s.id ORDER BY ${order},s.name ASC LIMIT $${args.length}`,args)
+}
+async function topServerById(id){
+ const rows=await topServers({id:String(id),limit:1});return rows[0]||null;
+}
+async function saveTopServer(actor,input){
+ const id=topOptional(input.id,80)||crypto.randomUUID(),name=topText(input.name,100),game=topText(input.game,60),map=topOptional(input.map,100),platform=topOptional(input.platform,80),address=topOptional(input.address,200),website=topUrl(input.website),discord=topUrl(input.discord_url),description=topOptional(input.description,700),image=topUrl(input.image_url),source=topOptional(input.source_bot||'CMD Top Serveur',60)||'CMD Top Serveur',guildId=topOptional(input.guild_id,40),ownerUserId=topOptional(input.owner_user_id,40),verified=Boolean(input.verified)||officialSource(source);
+ const row=await db.one(`INSERT INTO shared_top_servers(id,guild_id,owner_user_id,name,game,map,platform,address,website,discord_url,description,image_url,source_bot,verified)
+ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+ ON CONFLICT(id) DO UPDATE SET guild_id=EXCLUDED.guild_id,owner_user_id=EXCLUDED.owner_user_id,name=EXCLUDED.name,game=EXCLUDED.game,map=EXCLUDED.map,platform=EXCLUDED.platform,address=EXCLUDED.address,website=EXCLUDED.website,discord_url=EXCLUDED.discord_url,description=EXCLUDED.description,image_url=EXCLUDED.image_url,source_bot=EXCLUDED.source_bot,verified=EXCLUDED.verified,enabled=TRUE,updated_at=NOW()
+ RETURNING *`,[id,guildId,ownerUserId,name,game,map,platform,address,website,discord,description,image,source,verified]);
+ return row;
+}
+async function ownerTopServers(ownerUserId){return db.all('SELECT * FROM shared_top_servers WHERE owner_user_id=$1 ORDER BY updated_at DESC',[topText(ownerUserId,40)])}
+async function updateTopServer(ownerUserId,id,input){
+ const current=await db.one('SELECT * FROM shared_top_servers WHERE id=$1 AND owner_user_id=$2',[String(id),String(ownerUserId)]);if(!current)fail('notFound',404);
+ return saveTopServer(ownerUserId,{...current,...input,id:current.id,owner_user_id:current.owner_user_id,guild_id:input.guild_id??current.guild_id,source_bot:current.source_bot,verified:current.verified});
+}
+async function deleteTopServer(ownerUserId,id){
+ const row=await db.one('UPDATE shared_top_servers SET enabled=FALSE,updated_at=NOW() WHERE id=$1 AND owner_user_id=$2 RETURNING id,name',[String(id),String(ownerUserId)]);if(!row)fail('notFound',404);return {ok:true,...row};
+}
+async function voteTopServer(id,ip,userAgent,userId=''){
+ const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
+ const voter=userId?sha('discord:'+String(userId)):sha(`${ip||'unknown'}|${userAgent||''}`);
+ const bucket=Math.floor(Date.now()/7200000);
+ const row=await db.one('INSERT INTO shared_top_server_votes(server_id,voter_hash,vote_bucket) VALUES($1,$2,$3) ON CONFLICT(server_id,voter_hash,vote_bucket) DO NOTHING RETURNING id',[id,voter,bucket]);
+ const count=await db.one("SELECT COUNT(*)::int AS votes,COUNT(*) FILTER (WHERE created_at>=date_trunc('month',NOW()))::int AS votes_month,COUNT(*) FILTER (WHERE created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h FROM shared_top_server_votes WHERE server_id=$1",[id]);
+ return {accepted:Boolean(row),cooldownSeconds:row?0:Math.max(1,Math.ceil(((bucket+1)*7200000-Date.now())/1000)),...count};
+}
+async function visitTopServer(id,ip,userAgent){
+ const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
+ const visitor=sha(`${ip||'unknown'}|${userAgent||''}`),bucket=Math.floor(Date.now()/3600000);
+ const row=await db.one('INSERT INTO shared_top_server_visits(server_id,visitor_hash,visit_bucket) VALUES($1,$2,$3) ON CONFLICT(server_id,visitor_hash,visit_bucket) DO NOTHING RETURNING id',[id,visitor,bucket]);
+ return {accepted:Boolean(row)};
+}
+
+async function playMiniGame(g,user,game,answer){if(!['dinoquiz','survivor'].includes(game))fail('invalidInput',400);const questions={dinoquiz:{q:'Quel dinosaure est connu pour sa vitesse et sa chasse en meute ?',a:'raptor'},survivor:{q:'Quel outil permet de récolter efficacement la pierre au début ?',a:'pioche'}};if(answer===undefined)return {game,question:questions[game].q};const correct=String(answer).trim().toLowerCase()===questions[game].a,reward=correct?50:0;await db.query('INSERT INTO ark_minigame_scores(guild_id,user_id,game,score,reward) VALUES($1,$2,$3,$4,$5)',[g,user,game,correct?1:0,reward]);if(reward){await db.query('INSERT INTO ark_wallets(guild_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[g,user]);await db.query('UPDATE ark_wallets SET balance=balance+$3 WHERE guild_id=$1 AND user_id=$2',[g,user,reward]);await db.query('INSERT INTO ark_wallet_transactions(guild_id,user_id,amount,kind,details) VALUES($1,$2,$3,$4,$5)',[g,user,reward,'minigame',{game}])}return {correct,reward}}
+module.exports={sha,periodKey,guild,member,active,seasonInGuild,createSeason,publishSeason,archiveSeason,createQuest,createReward,quests,pass,claimQuest,reviewClaim,claimReward,deliverReward,openTicket,ticket,ticketMessage,closeTicket,updateMember,ingest,rawLogs,snapshot,audit,economy,saveRpProfile,transferCredits,grantCredits,addShopItem,buyShopItem,lotteryTicket,drawLottery,playMiniGame,topServers,topServerById,saveTopServer,ownerTopServers,updateTopServer,deleteTopServer,voteTopServer,visitTopServer};
++args.length)}
+ if(filters.game){args.push(String(filters.game).trim().toLowerCase());where.push('LOWER(s.game)=
+ if(filters.q){args.push('%'+String(filters.q).trim().toLowerCase().slice(0,100)+'%');where.push("(LOWER(s.name) LIKE $"+args.length+" OR LOWER(s.description) LIKE $"+args.length+" OR LOWER(s.game) LIKE $"+args.length+")")}
+ const sort=String(filters.sort||'monthly');
+ const order=sort==='votes'?'votes DESC,votes_month DESC':sort==='new'?'s.created_at DESC':sort==='clicks'?'clicks_month DESC,votes_month DESC':'votes_month DESC,votes_24h DESC,votes DESC';
+ const limit=Math.max(1,Math.min(100,Number(filters.limit)||100));args.push(limit);
+ return db.all(`SELECT s.id,s.guild_id,s.name,s.game,s.map,s.platform,s.address,s.website,s.discord_url,s.description,s.image_url,s.source_bot,s.verified,s.created_at,s.updated_at,
+  COUNT(DISTINCT v.id)::int AS votes,
+  COUNT(DISTINCT v.id) FILTER (WHERE v.created_at>=date_trunc('month',NOW()))::int AS votes_month,
+  COUNT(DISTINCT v.id) FILTER (WHERE v.created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h,
+  COUNT(DISTINCT vi.id)::int AS clicks,
+  COUNT(DISTINCT vi.id) FILTER (WHERE vi.created_at>=date_trunc('month',NOW()))::int AS clicks_month,
+  COUNT(DISTINCT vi.id) FILTER (WHERE vi.created_at>=NOW()-INTERVAL '24 hours')::int AS clicks_24h
+  FROM shared_top_servers s
+  LEFT JOIN shared_top_server_votes v ON v.server_id=s.id
+  LEFT JOIN shared_top_server_visits vi ON vi.server_id=s.id
+  WHERE ${where.join(' AND ')}
+  GROUP BY s.id ORDER BY ${order},s.name ASC LIMIT $${args.length}`,args)
+}
+async function topServerById(id){
+ const rows=await topServers({limit:100});return rows.find(x=>String(x.id)===String(id))||null;
+}
+async function saveTopServer(actor,input){
+ const id=topOptional(input.id,80)||crypto.randomUUID(),name=topText(input.name,100),game=topText(input.game,60),map=topOptional(input.map,100),platform=topOptional(input.platform,80),address=topOptional(input.address,200),website=topUrl(input.website),discord=topUrl(input.discord_url),description=topOptional(input.description,700),image=topUrl(input.image_url),source=topOptional(input.source_bot||'CMD Top Serveur',60)||'CMD Top Serveur',guildId=topOptional(input.guild_id,40),ownerUserId=topOptional(input.owner_user_id,40),verified=Boolean(input.verified)||officialSource(source);
+ const row=await db.one(`INSERT INTO shared_top_servers(id,guild_id,owner_user_id,name,game,map,platform,address,website,discord_url,description,image_url,source_bot,verified)
+ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+ ON CONFLICT(id) DO UPDATE SET guild_id=EXCLUDED.guild_id,owner_user_id=EXCLUDED.owner_user_id,name=EXCLUDED.name,game=EXCLUDED.game,map=EXCLUDED.map,platform=EXCLUDED.platform,address=EXCLUDED.address,website=EXCLUDED.website,discord_url=EXCLUDED.discord_url,description=EXCLUDED.description,image_url=EXCLUDED.image_url,source_bot=EXCLUDED.source_bot,verified=EXCLUDED.verified,enabled=TRUE,updated_at=NOW()
+ RETURNING *`,[id,guildId,ownerUserId,name,game,map,platform,address,website,discord,description,image,source,verified]);
+ return row;
+}
+async function ownerTopServers(ownerUserId){return db.all('SELECT * FROM shared_top_servers WHERE owner_user_id=$1 ORDER BY updated_at DESC',[topText(ownerUserId,40)])}
+async function updateTopServer(ownerUserId,id,input){
+ const current=await db.one('SELECT * FROM shared_top_servers WHERE id=$1 AND owner_user_id=$2',[String(id),String(ownerUserId)]);if(!current)fail('notFound',404);
+ return saveTopServer(ownerUserId,{...current,...input,id:current.id,owner_user_id:current.owner_user_id,guild_id:input.guild_id??current.guild_id,source_bot:current.source_bot,verified:current.verified});
+}
+async function deleteTopServer(ownerUserId,id){
+ const row=await db.one('UPDATE shared_top_servers SET enabled=FALSE,updated_at=NOW() WHERE id=$1 AND owner_user_id=$2 RETURNING id,name',[String(id),String(ownerUserId)]);if(!row)fail('notFound',404);return {ok:true,...row};
+}
+async function voteTopServer(id,ip,userAgent,userId=''){
+ const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
+ const voter=userId?sha('discord:'+String(userId)):sha(`${ip||'unknown'}|${userAgent||''}`);
+ const bucket=Math.floor(Date.now()/7200000);
+ const row=await db.one('INSERT INTO shared_top_server_votes(server_id,voter_hash,vote_bucket) VALUES($1,$2,$3) ON CONFLICT(server_id,voter_hash,vote_bucket) DO NOTHING RETURNING id',[id,voter,bucket]);
+ const count=await db.one("SELECT COUNT(*)::int AS votes,COUNT(*) FILTER (WHERE created_at>=date_trunc('month',NOW()))::int AS votes_month,COUNT(*) FILTER (WHERE created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h FROM shared_top_server_votes WHERE server_id=$1",[id]);
+ return {accepted:Boolean(row),cooldownSeconds:row?0:Math.max(1,Math.ceil(((bucket+1)*7200000-Date.now())/1000)),...count};
+}
+async function visitTopServer(id,ip,userAgent){
+ const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
+ const visitor=sha(`${ip||'unknown'}|${userAgent||''}`),bucket=Math.floor(Date.now()/3600000);
+ const row=await db.one('INSERT INTO shared_top_server_visits(server_id,visitor_hash,visit_bucket) VALUES($1,$2,$3) ON CONFLICT(server_id,visitor_hash,visit_bucket) DO NOTHING RETURNING id',[id,visitor,bucket]);
+ return {accepted:Boolean(row)};
+}
+
+async function playMiniGame(g,user,game,answer){if(!['dinoquiz','survivor'].includes(game))fail('invalidInput',400);const questions={dinoquiz:{q:'Quel dinosaure est connu pour sa vitesse et sa chasse en meute ?',a:'raptor'},survivor:{q:'Quel outil permet de récolter efficacement la pierre au début ?',a:'pioche'}};if(answer===undefined)return {game,question:questions[game].q};const correct=String(answer).trim().toLowerCase()===questions[game].a,reward=correct?50:0;await db.query('INSERT INTO ark_minigame_scores(guild_id,user_id,game,score,reward) VALUES($1,$2,$3,$4,$5)',[g,user,game,correct?1:0,reward]);if(reward){await db.query('INSERT INTO ark_wallets(guild_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[g,user]);await db.query('UPDATE ark_wallets SET balance=balance+$3 WHERE guild_id=$1 AND user_id=$2',[g,user,reward]);await db.query('INSERT INTO ark_wallet_transactions(guild_id,user_id,amount,kind,details) VALUES($1,$2,$3,$4,$5)',[g,user,reward,'minigame',{game}])}return {correct,reward}}
+module.exports={sha,periodKey,guild,member,active,seasonInGuild,createSeason,publishSeason,archiveSeason,createQuest,createReward,quests,pass,claimQuest,reviewClaim,claimReward,deliverReward,openTicket,ticket,ticketMessage,closeTicket,updateMember,ingest,rawLogs,snapshot,audit,economy,saveRpProfile,transferCredits,grantCredits,addShopItem,buyShopItem,lotteryTicket,drawLottery,playMiniGame,topServers,topServerById,saveTopServer,ownerTopServers,updateTopServer,deleteTopServer,voteTopServer,visitTopServer};
++args.length)}
  if(filters.q){args.push('%'+String(filters.q).trim().toLowerCase().slice(0,100)+'%');where.push("(LOWER(s.name) LIKE $"+args.length+" OR LOWER(s.description) LIKE $"+args.length+" OR LOWER(s.game) LIKE $"+args.length+")")}
  const sort=String(filters.sort||'monthly');
  const order=sort==='votes'?'votes DESC,votes_month DESC':sort==='new'?'s.created_at DESC':sort==='clicks'?'clicks_month DESC,votes_month DESC':'votes_month DESC,votes_24h DESC,votes DESC';
