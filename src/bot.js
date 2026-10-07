@@ -45,6 +45,15 @@ async function adminMessages(guildId,channelId,before,limit=100){
  const rows=await ch.messages.fetch(opts),arr=[...rows.values()];
  return {channel:{id:ch.id,name:ch.name||ch.id,type:channelTypeLabel(ch.type),topic:'topic'in ch?(ch.topic||null):null,parentId:ch.parentId||null},messages:arr.map(adminSerializeMessage),hasMore:arr.length===n,nextBefore:arr.length?arr[arr.length-1].id:null,contentIntentEnabled:process.env.DISCORD_MESSAGE_CONTENT==='true'};
 }
+
+function adminSerializeWebhook(w){
+ const owner=w.owner||w.user||null;
+ return {id:String(w.id),guildId:w.guildId?String(w.guildId):null,channelId:w.channelId?String(w.channelId):null,name:String(w.name||'Webhook'),avatar:w.avatarURL?.({extension:'webp',size:128})||null,type:Number(w.type||1),creator:owner?{id:String(owner.id||''),username:String(owner.globalName||owner.username||owner.tag||'Discord')}:null};
+}
+async function adminWebhooks(guildId){
+ const g=await adminGuild(guildId),rows=await g.fetchWebhooks();
+ return {guildId:g.id,webhooks:[...rows.values()].map(adminSerializeWebhook).sort((a,b)=>a.name.localeCompare(b.name,'fr'))};
+}
 async function adminStructure(id){
  const g=await adminGuild(id);await g.channels.fetch();await g.roles.fetch();const me=await g.members.fetchMe().catch(()=>null);
  return {id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,memberCount:g.memberCount||0,bot:{id:client.user?.id||null,name:client.user?.username||null,highestRolePosition:me?.roles?.highest?.position??null},channels:[...g.channels.cache.values()].map(ch=>({id:ch.id,name:ch.name,type:channelTypeLabel(ch.type),typeId:ch.type,parentId:ch.parentId||null,position:ch.rawPosition??ch.position??0,topic:'topic'in ch?(ch.topic||null):null})).sort((a,b)=>a.position-b.position||a.name.localeCompare(b.name,'fr')),roles:[...g.roles.cache.values()].map(r=>({id:r.id,name:r.name,color:r.hexColor,position:r.position,hoist:r.hoist,mentionable:r.mentionable,managed:r.managed,permissions:r.permissions.bitfield.toString(),everyone:r.id===g.id})).sort((a,b)=>b.position-a.position)};
@@ -143,4 +152,4 @@ let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),60000);auditTimer.unref();
 const moduleTimer=setInterval(()=>modules.tick(client).catch(()=>{}),60000);moduleTimer.unref();
-module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminMessages,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
+module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminMessages,adminWebhooks,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
