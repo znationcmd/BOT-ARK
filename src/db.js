@@ -111,6 +111,13 @@ CREATE TABLE IF NOT EXISTS shared_top_server_votes(
  UNIQUE(server_id,voter_hash,vote_day)
 );
 CREATE INDEX IF NOT EXISTS shared_top_server_votes_rank_idx ON shared_top_server_votes(server_id,created_at DESC);
+ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS guild_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS owner_user_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS map TEXT NOT NULL DEFAULT '';
+ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT '';
+ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS shared_top_servers_guild_idx ON shared_top_servers(guild_id);
+CREATE INDEX IF NOT EXISTS shared_top_servers_owner_idx ON shared_top_servers(owner_user_id);
 CREATE TABLE IF NOT EXISTS ark_premium_codes(
  id BIGSERIAL PRIMARY KEY,
  code_hash TEXT UNIQUE NOT NULL,
