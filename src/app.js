@@ -76,6 +76,7 @@ function app(){
  route('get','/api/nitrado/services',login,staff,scope,async(req,res)=>res.json(await nitrado.services(req.g)));
  route('post','/api/nitrado/poll',login,staff,scope,async(req,res)=>res.json(await nitrado.poll(req.g)));
  route('get','/api/cmd-discord/guilds',cmdMcpGuard,async(req,res)=>res.json(await bot.adminGuilds()));
+ route('get','/api/cmd-discord/invite',cmdMcpGuard,async(req,res)=>{const clientId=String(process.env.DISCORD_CLIENT_ID||'');if(!clientId)fail('misconfigured',503);const url=String(process.env.DISCORD_INVITE_URL||'')||('https://discord.com/oauth2/authorize?client_id='+encodeURIComponent(clientId)+'&permissions=8&integration_type=0&scope=bot%20applications.commands');res.json({bot:'ark',name:'BOT ARK',clientId,url})});
  route('get','/api/cmd-discord/structure',cmdMcpGuard,async(req,res)=>res.json(await bot.adminStructure(String(req.query.guildId||''))));
  route('get','/api/cmd-discord/messages',cmdMcpGuard,async(req,res)=>res.json(await bot.adminMessages(String(req.query.guildId||''),String(req.query.channelId||''),String(req.query.before||''),req.query.limit||100)));
  route('get','/api/cmd-discord/webhooks',cmdMcpGuard,async(req,res)=>res.json(await bot.adminWebhooks(String(req.query.guildId||''))));
