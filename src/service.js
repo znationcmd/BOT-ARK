@@ -90,21 +90,25 @@ async function drawLottery(g,actor){const drawKey=new Date().toISOString().slice
 function topText(value,max=120){const s=String(value??'').trim();if(!s||s.length>max||/[\r\n\0]/.test(s))fail('invalidInput',400);return s}
 function topOptional(value,max=500){const s=String(value??'').trim();if(s.length>max||/[\r\n\0]/.test(s))fail('invalidInput',400);return s}
 function topUrl(value){const s=topOptional(value,500);if(s&&!/^https?:\/\//i.test(s))fail('invalidInput',400);return s}
-async function topServers(){return db.all(`SELECT s.id,s.name,s.game,s.address,s.website,s.discord_url,s.description,s.image_url,s.source_bot,s.created_at,
+async function topServers(){return db.all(`SELECT s.id,s.guild_id,s.name,s.game,s.map,s.platform,s.address,s.website,s.discord_url,s.description,s.image_url,s.source_bot,s.verified,s.created_at,
  COUNT(v.id)::int AS votes,
+ COUNT(v.id) FILTER (WHERE v.created_at>=date_trunc('month',NOW()))::int AS votes_month,
  COUNT(v.id) FILTER (WHERE v.created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h
  FROM shared_top_servers s LEFT JOIN shared_top_server_votes v ON v.server_id=s.id
- WHERE s.enabled=TRUE GROUP BY s.id ORDER BY votes_24h DESC,votes DESC,s.name ASC`)}
+ WHERE s.enabled=TRUE GROUP BY s.id ORDER BY votes_month DESC,votes_24h DESC,votes DESC,s.name ASC`)}
 async function saveTopServer(actor,input){
- const id=crypto.randomUUID(),name=topText(input.name,100),game=topText(input.game,60),address=topOptional(input.address,200),website=topUrl(input.website),discord=topUrl(input.discord_url),description=topOptional(input.description,700),image=topUrl(input.image_url),source=topOptional(input.source_bot||'BOT ARK',60)||'BOT ARK';
- const row=await db.one('INSERT INTO shared_top_servers(id,name,game,address,website,discord_url,description,image_url,source_bot) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',[id,name,game,address,website,discord,description,image,source]);
+ const id=topOptional(input.id,80)||crypto.randomUUID(),name=topText(input.name,100),game=topText(input.game,60),map=topOptional(input.map,100),platform=topOptional(input.platform,80),address=topOptional(input.address,200),website=topUrl(input.website),discord=topUrl(input.discord_url),description=topOptional(input.description,700),image=topUrl(input.image_url),source=topOptional(input.source_bot||'CMD Top Serveur',60)||'CMD Top Serveur',guildId=topOptional(input.guild_id,40),ownerUserId=topOptional(input.owner_user_id,40);
+ const row=await db.one(`INSERT INTO shared_top_servers(id,guild_id,owner_user_id,name,game,map,platform,address,website,discord_url,description,image_url,source_bot,verified)
+ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+ ON CONFLICT(id) DO UPDATE SET guild_id=EXCLUDED.guild_id,owner_user_id=EXCLUDED.owner_user_id,name=EXCLUDED.name,game=EXCLUDED.game,map=EXCLUDED.map,platform=EXCLUDED.platform,address=EXCLUDED.address,website=EXCLUDED.website,discord_url=EXCLUDED.discord_url,description=EXCLUDED.description,image_url=EXCLUDED.image_url,source_bot=EXCLUDED.source_bot,verified=EXCLUDED.verified,enabled=TRUE,updated_at=NOW()
+ RETURNING *`,[id,guildId,ownerUserId,name,game,map,platform,address,website,discord,description,image,source,Boolean(input.verified)]);
  return row;
 }
-async function voteTopServer(id,ip,userAgent){
+async function voteTopServer(id,ip,userAgent,userId=''){
  const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
- const voter=sha(`${ip||'unknown'}|${userAgent||''}`);
+ const voter=userId?sha('discord:'+String(userId)):sha(`${ip||'unknown'}|${userAgent||''}`);
  const row=await db.one('INSERT INTO shared_top_server_votes(server_id,voter_hash) VALUES($1,$2) ON CONFLICT(server_id,voter_hash,vote_day) DO NOTHING RETURNING id',[id,voter]);
- const count=await db.one("SELECT COUNT(*)::int AS votes,COUNT(*) FILTER (WHERE created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h FROM shared_top_server_votes WHERE server_id=$1",[id]);
+ const count=await db.one("SELECT COUNT(*)::int AS votes,COUNT(*) FILTER (WHERE created_at>=date_trunc('month',NOW()))::int AS votes_month,COUNT(*) FILTER (WHERE created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h FROM shared_top_server_votes WHERE server_id=$1",[id]);
  return {accepted:Boolean(row),...count};
 }
 
