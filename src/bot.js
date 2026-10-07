@@ -22,6 +22,29 @@ const channelTypeLabel=t=>Object.entries(discordChannelTypes).find(([,v])=>v===t
 async function adminGuild(id){if(!client?.isReady())fail('botNotReady',503);const g=await client.guilds.fetch(String(id));if(!g)fail('notFound',404);return g}
 function permissionObject(allow=[],deny=[]){const out={};for(const name of allow){if(!(name in P))fail('invalidInput',400);out[name]=true}for(const name of deny){if(!(name in P))fail('invalidInput',400);out[name]=false}return out}
 async function adminGuilds(){if(!client?.isReady())return[];return [...client.guilds.cache.values()].map(g=>({id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,memberCount:g.memberCount||0})).sort((a,b)=>a.name.localeCompare(b.name,'fr'))}
+
+function adminSerializeMessage(m){
+ return {
+  id:String(m.id),channelId:String(m.channelId||''),guildId:m.guildId?String(m.guildId):null,
+  content:String(m.content||''),timestamp:m.createdAt?.toISOString?.()||null,editedTimestamp:m.editedAt?.toISOString?.()||null,
+  author:{id:String(m.author?.id||''),username:String(m.member?.displayName||m.author?.globalName||m.author?.username||'Utilisateur'),tag:String(m.author?.username||''),bot:Boolean(m.author?.bot),avatar:m.author?.displayAvatarURL?.({extension:'webp',size:128})||null},
+  attachments:[...(m.attachments?.values?.()||[])].map(a=>({id:String(a.id),filename:a.name||a.filename||'fichier',url:a.url,proxyUrl:a.proxyURL||null,contentType:a.contentType||null,size:Number(a.size||0),width:a.width??null,height:a.height??null,description:a.description||null})),
+  embeds:(m.embeds||[]).map(e=>e.toJSON?e.toJSON():e),
+  stickers:[...(m.stickers?.values?.()||[])].map(st=>({id:String(st.id),name:st.name,formatType:st.format})),
+  reactions:[...(m.reactions?.cache?.values?.()||[])].map(r=>({count:Number(r.count||0),me:Boolean(r.me),emoji:{id:r.emoji?.id||null,name:r.emoji?.name||null,animated:Boolean(r.emoji?.animated)}})),
+  mentions:[...(m.mentions?.users?.values?.()||[])].map(u=>({id:String(u.id),username:String(u.globalName||u.username||'Utilisateur'),avatar:u.displayAvatarURL?.({extension:'webp',size:128})||null})),
+  mentionRoles:[...(m.mentions?.roles?.keys?.()||[])].map(String),pinned:Boolean(m.pinned),tts:Boolean(m.tts),type:Number(m.type||0),
+  reference:m.reference?{messageId:m.reference.messageId||null,channelId:m.reference.channelId||null,guildId:m.reference.guildId||null}:null,
+  contentIntentEnabled:process.env.DISCORD_MESSAGE_CONTENT==='true'
+ };
+}
+async function adminMessages(guildId,channelId,before,limit=100){
+ const g=await adminGuild(guildId),ch=await g.channels.fetch(String(channelId||''));
+ if(!ch||String(ch.guildId||'')!==String(g.id)||!ch.isTextBased?.()||!ch.messages)fail('notFound',404);
+ const n=Math.max(1,Math.min(100,Number(limit)||100)),opts={limit:n};if(before&&/^\d{15,22}$/.test(String(before)))opts.before=String(before);
+ const rows=await ch.messages.fetch(opts),arr=[...rows.values()];
+ return {channel:{id:ch.id,name:ch.name||ch.id,type:channelTypeLabel(ch.type),topic:'topic'in ch?(ch.topic||null):null,parentId:ch.parentId||null},messages:arr.map(adminSerializeMessage),hasMore:arr.length===n,nextBefore:arr.length?arr[arr.length-1].id:null,contentIntentEnabled:process.env.DISCORD_MESSAGE_CONTENT==='true'};
+}
 async function adminStructure(id){
  const g=await adminGuild(id);await g.channels.fetch();await g.roles.fetch();const me=await g.members.fetchMe().catch(()=>null);
  return {id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,memberCount:g.memberCount||0,bot:{id:client.user?.id||null,name:client.user?.username||null,highestRolePosition:me?.roles?.highest?.position??null},channels:[...g.channels.cache.values()].map(ch=>({id:ch.id,name:ch.name,type:channelTypeLabel(ch.type),typeId:ch.type,parentId:ch.parentId||null,position:ch.rawPosition??ch.position??0,topic:'topic'in ch?(ch.topic||null):null})).sort((a,b)=>a.position-b.position||a.name.localeCompare(b.name,'fr')),roles:[...g.roles.cache.values()].map(r=>({id:r.id,name:r.name,color:r.hexColor,position:r.position,hoist:r.hoist,mentionable:r.mentionable,managed:r.managed,permissions:r.permissions.bitfield.toString(),everyone:r.id===g.id})).sort((a,b)=>b.position-a.position)};
@@ -36,6 +59,7 @@ async function adminAction(body){
  if(action==='update_role'){const role=await g.roles.fetch(String(body.roleId||''));if(!role||role.id===g.id)fail('notFound',404);const opts={reason:'CMD Discord MCP'};if(body.name!==undefined)opts.name=String(body.name).slice(0,100);if(body.color!==undefined)opts.color=body.color?String(body.color):null;if(body.hoist!==undefined)opts.hoist=Boolean(body.hoist);if(body.mentionable!==undefined)opts.mentionable=Boolean(body.mentionable);if(body.permissions!==undefined)opts.permissions=BigInt(String(body.permissions));await role.edit(opts);if(body.position!==undefined)await role.setPosition(Number(body.position),{reason:'CMD Discord MCP'});return {ok:true,role:{id:role.id,name:role.name,color:role.hexColor,position:role.position}}}
  if(action==='delete_role'){const role=await g.roles.fetch(String(body.roleId||''));if(!role||role.id===g.id)fail('notFound',404);const result={id:role.id,name:role.name};await role.delete('CMD Discord MCP');return {ok:true,deleted:result}}
  if(action==='set_channel_permissions'){const ch=await g.channels.fetch(String(body.channelId||''));if(!ch)fail('notFound',404);const target=body.targetType==='member'?await g.members.fetch(String(body.targetId||'')):await g.roles.fetch(String(body.targetId||''));if(!target)fail('notFound',404);await ch.permissionOverwrites.edit(target,permissionObject(body.allow||[],body.deny||[]),{reason:'CMD Discord MCP'});return {ok:true,channelId:ch.id,targetId:String(body.targetId)}}
+ if(action==='send_message'){const ch=await g.channels.fetch(String(body.channelId||''));if(!ch||String(ch.guildId||'')!==String(g.id)||!ch.isTextBased?.())fail('notFound',404);const content=String(body.content||'').trim().slice(0,2000);if(!content)fail('invalidInput',400);const options={content,allowedMentions:{parse:['users','roles'],repliedUser:false}};if(body.replyTo&&/^\d{15,22}$/.test(String(body.replyTo)))options.reply={messageReference:String(body.replyTo),failIfNotExists:false};const m=await ch.send(options);return {ok:true,message:adminSerializeMessage(m),sentAsBot:true}}
  fail('invalidInput',400);
 }
 function installedGuilds(){if(!client?.isReady())return [];return [...client.guilds.cache.values()].map(g=>({id:g.id,name:g.name,icon:g.iconURL({extension:'webp',size:128})||null,ownerId:g.ownerId,memberCount:g.memberCount||0,installed:true})).sort((a,b)=>a.name.localeCompare(b.name,'fr'))}
@@ -119,4 +143,4 @@ let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),60000);auditTimer.unref();
 const moduleTimer=setInterval(()=>modules.tick(client).catch(()=>{}),60000);moduleTimer.unref();
-module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
+module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminMessages,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
