@@ -97,7 +97,7 @@ async function topServers(filters={}){
  if(filters.game){args.push(String(filters.game).trim().toLowerCase());where.push('LOWER(s.game)=$'+args.length)}
  if(filters.q){args.push('%'+String(filters.q).trim().toLowerCase().slice(0,100)+'%');where.push("(LOWER(s.name) LIKE $"+args.length+" OR LOWER(s.description) LIKE $"+args.length+" OR LOWER(s.game) LIKE $"+args.length+")")}
  const sort=String(filters.sort||'monthly');
- const order=sort==='votes'?'votes DESC,votes_month DESC':sort==='new'?'s.created_at DESC':sort==='clicks'?'clicks_month DESC,votes_month DESC':'votes_month DESC,votes_24h DESC,votes DESC';
+ const order=sort==='daily'?'votes_24h DESC,votes_month DESC,votes DESC':sort==='votes'?'votes DESC,votes_month DESC':sort==='new'?'s.created_at DESC':sort==='clicks'?'clicks_month DESC,votes_month DESC':'votes_month DESC,votes_24h DESC,votes DESC';
  const limit=Math.max(1,Math.min(100,Number(filters.limit)||100));args.push(limit);
  return db.all(`SELECT s.id,s.guild_id,s.owner_user_id,s.name,s.game,s.map,s.platform,s.address,s.website,s.discord_url,s.description,s.image_url,s.source_bot,s.verified,s.created_at,s.updated_at,
   COUNT(DISTINCT v.id)::int AS votes,
@@ -136,7 +136,7 @@ async function voteTopServer(id,ip,userAgent,userId=''){
  const bucket=Math.floor(Date.now()/7200000);
  const row=await db.one('INSERT INTO shared_top_server_votes(server_id,voter_hash,vote_bucket) VALUES($1,$2,$3) ON CONFLICT(server_id,voter_hash,vote_bucket) DO NOTHING RETURNING id',[id,voter,bucket]);
  const count=await db.one("SELECT COUNT(*)::int AS votes,COUNT(*) FILTER (WHERE created_at>=date_trunc('month',NOW()))::int AS votes_month,COUNT(*) FILTER (WHERE created_at>=NOW()-INTERVAL '24 hours')::int AS votes_24h FROM shared_top_server_votes WHERE server_id=$1",[id]);
- return {accepted:Boolean(row),cooldownSeconds:row?0:Math.max(1,Math.ceil(((bucket+1)*7200000-Date.now())/1000)),...count};
+ return {accepted:Boolean(row),cooldownSeconds:Math.max(1,Math.ceil(((bucket+1)*7200000-Date.now())/1000)),...count};
 }
 async function visitTopServer(id,ip,userAgent){
  const server=await db.one('SELECT id FROM shared_top_servers WHERE id=$1 AND enabled=TRUE',[id]);if(!server)fail('notFound',404);
