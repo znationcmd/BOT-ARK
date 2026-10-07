@@ -460,7 +460,7 @@ $('#language').onchange=async e=>{language=e.target.value;localStorage.setItem('
 $('#install').onclick=()=>action('install').catch(err=>toast(tr(err.message),true));
 window.addEventListener('hashchange',()=>{const hash=location.hash.slice(1);if(hash.startsWith('login='))return;page=nav.some(([k])=>k===hash)?hash:'home';document.body.classList.remove('nav-open');$('#shade').hidden=true;render().catch(err=>toast(tr(err.message),true))});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e});window.addEventListener('online',()=>refresh().catch(()=>{}));window.addEventListener('offline',()=>render());
-async function boot(){page=location.hash.slice(1)||'home';try{const hash=location.hash.slice(1);if(hash.startsWith('login=')){const token=hash.slice(6);history.replaceState(null,'',location.pathname);page='home';await api('/api/discord-login',{token})}await refresh()}catch(err){me.loggedIn=false;await render();toast(tr(err.message),true)}if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+async function boot(){page=location.hash.slice(1)||'home';try{const hash=location.hash.slice(1);if(hash.startsWith('login=')){const token=hash.slice(6);history.replaceState(null,'',location.pathname);page='home';await api('/api/discord-login',{token})}await refresh()}catch(err){me.loggedIn=false;await render();toast(tr(err.message),true)}if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js?v=24',{updateViaCache:'none'}).catch(()=>{})}
 boot();
 
 let arkReloading=false,arkSwRegistration=null;
@@ -501,7 +501,7 @@ if('serviceWorker' in navigator){
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(arkReloading)return;arkReloading=true;location.reload()});
  window.addEventListener('load',async()=>{
   try{
-   arkSwRegistration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
+   arkSwRegistration=await navigator.serviceWorker.register('/sw.js?v=24',{scope:'/',updateViaCache:'none'});
    arkSwRegistration.addEventListener('updatefound',()=>{
     const sw=arkSwRegistration.installing;if(!sw)return;
     sw.addEventListener('statechange',()=>{if(sw.state==='installed'&&navigator.serviceWorker.controller)sw.postMessage({type:'SKIP_WAITING'})});
