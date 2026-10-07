@@ -111,6 +111,21 @@ CREATE TABLE IF NOT EXISTS shared_top_server_votes(
  UNIQUE(server_id,voter_hash,vote_day)
 );
 CREATE INDEX IF NOT EXISTS shared_top_server_votes_rank_idx ON shared_top_server_votes(server_id,created_at DESC);
+ALTER TABLE shared_top_server_votes ADD COLUMN IF NOT EXISTS vote_bucket BIGINT;
+UPDATE shared_top_server_votes SET vote_bucket=FLOOR(EXTRACT(EPOCH FROM created_at)/7200)::BIGINT WHERE vote_bucket IS NULL;
+ALTER TABLE shared_top_server_votes ALTER COLUMN vote_bucket SET DEFAULT FLOOR(EXTRACT(EPOCH FROM NOW())/7200)::BIGINT;
+ALTER TABLE shared_top_server_votes ALTER COLUMN vote_bucket SET NOT NULL;
+ALTER TABLE shared_top_server_votes DROP CONSTRAINT IF EXISTS shared_top_server_votes_server_id_voter_hash_vote_day_key;
+CREATE UNIQUE INDEX IF NOT EXISTS shared_top_server_votes_2h_uidx ON shared_top_server_votes(server_id,voter_hash,vote_bucket);
+CREATE TABLE IF NOT EXISTS shared_top_server_visits(
+ id BIGSERIAL PRIMARY KEY,
+ server_id TEXT NOT NULL REFERENCES shared_top_servers(id) ON DELETE CASCADE,
+ visitor_hash TEXT NOT NULL,
+ visit_bucket BIGINT NOT NULL DEFAULT FLOOR(EXTRACT(EPOCH FROM NOW())/3600)::BIGINT,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS shared_top_server_visits_1h_uidx ON shared_top_server_visits(server_id,visitor_hash,visit_bucket);
+CREATE INDEX IF NOT EXISTS shared_top_server_visits_rank_idx ON shared_top_server_visits(server_id,created_at DESC);
 ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS guild_id TEXT NOT NULL DEFAULT '';
 ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS owner_user_id TEXT NOT NULL DEFAULT '';
 ALTER TABLE shared_top_servers ADD COLUMN IF NOT EXISTS map TEXT NOT NULL DEFAULT '';
