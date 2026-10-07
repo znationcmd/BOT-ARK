@@ -20,6 +20,7 @@ function app(){
  const login=async(req,res,next)=>{if(!req.session.user)fail('unauthorized',401);if(req.session.role!=='owner'&&req.session.guildId&&Date.now()-(req.session.checkedAt||0)>300000){await bot.verify(req.session.guildId,req.session.user,req.session.role);req.session.checkedAt=Date.now()}next()};
  const staff=(req,res,next)=>{if(!['owner','admin'].includes(req.session.role))fail('forbidden',403);next()};
  const owner=(req,res,next)=>{if(req.session.role!=='owner')fail('forbidden',403);next()};
+ const cmdMcpGuard=(req,res,next)=>{const secret=String(process.env.CMD_MCP_SECRET||''),supplied=String(req.get('x-cmd-mcp-secret')||'');if(secret.length<32||supplied.length!==secret.length)fail('unauthorized',401);if(!crypto.timingSafeEqual(Buffer.from(secret),Buffer.from(supplied)))fail('unauthorized',401);next()};
  const scope=(req,res,next)=>{const g=String(req.query.guild||req.body.guild||req.session.guildId||'');if(!g)fail('selectGuild');req.g=g;next()};
  const actor=req=>req.session.user;
  const attemptMap=new Map();function limit(req){const now=Date.now();const key=req.ip;let item=attemptMap.get(key);if(!item||now-item.at>900000)item={at:now,n:0};item.n++;attemptMap.set(key,item);if(item.n>12)fail('rateLimit',429);if(attemptMap.size>2000)for(const [key,item]of attemptMap)if(now-item.at>900000)attemptMap.delete(key)}
@@ -74,6 +75,9 @@ function app(){
  route('post','/api/webhook/:guild',async(req,res)=>{const id=v.id.parse(req.params.guild);const row=await db.one('SELECT config FROM ark_guilds WHERE id=$1',[id]);const supplied=s.sha(String(req.headers.authorization||'').replace(/^Bearer /,''));const expected=row?.config.webhook_secret_hash;if(!expected||!crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))fail('unauthorized',401);res.json(await s.ingest(id,'webhook',req.body.events))});
  route('get','/api/nitrado/services',login,staff,scope,async(req,res)=>res.json(await nitrado.services(req.g)));
  route('post','/api/nitrado/poll',login,staff,scope,async(req,res)=>res.json(await nitrado.poll(req.g)));
+ route('get','/api/cmd-discord/guilds',cmdMcpGuard,async(req,res)=>res.json(await bot.adminGuilds()));
+ route('get','/api/cmd-discord/structure',cmdMcpGuard,async(req,res)=>res.json(await bot.adminStructure(String(req.query.guildId||''))));
+ route('post','/api/cmd-discord/action',cmdMcpGuard,async(req,res)=>res.json(await bot.adminAction(req.body||{})));
  route('get','/api/top-servers',async(req,res)=>res.json(await s.topServers()));
  route('post','/api/top-servers',async(req,res)=>{const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');const ownerSession=req.session?.role==='owner';if(!ownerSession&&(!process.env.TOP_SERVERS_WRITE_KEY||supplied!==process.env.TOP_SERVERS_WRITE_KEY))fail('forbidden',403);res.json(await s.saveTopServer(ownerSession?actor(req):'network',req.body||{}));});
  route('post','/api/top-servers/:id/vote',async(req,res)=>res.json(await s.voteTopServer(req.params.id,req.ip,req.get('user-agent')||'')));
