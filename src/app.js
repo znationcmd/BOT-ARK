@@ -78,6 +78,7 @@ function app(){
  route('get','/api/cmd-discord/guilds',cmdMcpGuard,async(req,res)=>res.json(await bot.adminGuilds()));
  route('get','/api/cmd-discord/structure',cmdMcpGuard,async(req,res)=>res.json(await bot.adminStructure(String(req.query.guildId||''))));
  route('get','/api/cmd-discord/messages',cmdMcpGuard,async(req,res)=>res.json(await bot.adminMessages(String(req.query.guildId||''),String(req.query.channelId||''),String(req.query.before||''),req.query.limit||100)));
+ route('get','/api/cmd-discord/webhooks',cmdMcpGuard,async(req,res)=>res.json(await bot.adminWebhooks(String(req.query.guildId||''))));
  route('post','/api/cmd-discord/action',cmdMcpGuard,async(req,res)=>res.json(await bot.adminAction(req.body||{})));
  const topWrite=(req)=>{const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');return Boolean(process.env.TOP_SERVERS_WRITE_KEY&&supplied===process.env.TOP_SERVERS_WRITE_KEY)};
  route('get','/api/top-servers',async(req,res)=>res.json(await s.topServers({game:req.query.game||'',q:req.query.q||'',sort:req.query.sort||'monthly',limit:req.query.limit||100})));
