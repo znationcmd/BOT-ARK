@@ -1,5 +1,5 @@
 const CACHE='bot-ark-shell-v24';
-const SHELL=['/','/index.html','/styles.css?v=17','/draft-menu.css?v=7','/app.js?v=23','/locales.js?v=18','/icon-192.png?v=11','/icon-512.png?v=11','/apple-touch-icon.png?v=11','/apple-touch-icon-precomposed.png?v=11','/favicon.ico?v=11','/background.webp','/manifest.webmanifest?v=13'];
+const SHELL=['/','/index.html','/styles.css?v=17','/draft-menu.css?v=7','/app.js?v=24','/locales.js?v=19','/icon-192.png?v=11','/icon-512.png?v=11','/apple-touch-icon.png?v=11','/apple-touch-icon-precomposed.png?v=11','/favicon.ico?v=11','/background.webp','/manifest.webmanifest?v=13'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bot-ark-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('message',e=>{if(e.data&&e.data.type==='SKIP_WAITING')self.skipWaiting()});
