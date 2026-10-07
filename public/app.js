@@ -137,6 +137,7 @@ function loginView(){
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
     <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="https://cmd-top-serveur-production.up.railway.app/cmd-official.svg" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · Dashboard communautaire ARK</p>
     <div class="system-pill"><span></span>SYSTÈME ACTIF</div>
    </div>
@@ -185,6 +186,7 @@ function homeView(){
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
     <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="https://cmd-top-serveur-production.up.railway.app/cmd-official.svg" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · ${esc(state.season?.name||tr('noSeason'))}</p>
     <div class="system-pill"><span></span>${me.bot?.ready?'BOT DISCORD CONNECTÉ':'SYSTÈME ACTIF'}</div>
    </div>
@@ -371,7 +373,7 @@ async function topServersView(){
  let rows=[];try{const r=await fetch('/api/top-servers',{cache:'no-store'});rows=await r.json();}catch{}
  const cards=rows.map((s,i)=>`<article class="reward-card"><div class="eyebrow">#${i+1} · ${esc(s.game)}</div><h3>${esc(s.name)}</h3><p class="muted">${esc(s.description||s.address||'Serveur communautaire')}</p><div class="map-detail-chips"><span class="pill teal">🏆 ${num(s.votes_24h)} votes / 24h</span><span class="pill">${num(s.votes)} votes total</span><span class="pill">${esc(s.source_bot||'Réseau Valhalla')}</span></div><div class="form-actions section-gap"><button class="primary small" data-action="top-vote" data-id="${esc(s.id)}">Voter</button>${s.discord_url?`<a class="ghost small" href="${esc(s.discord_url)}" target="_blank" rel="noopener noreferrer">Discord ↗</a>`:''}${s.website?`<a class="ghost small" href="${esc(s.website)}" target="_blank" rel="noopener noreferrer">Site ↗</a>`:''}</div></article>`).join('');
  const add=me.loggedIn&&me.role==='owner'?'<button class="primary" data-action="top-server-add">+ Ajouter un serveur</button>':'';
- return head('Top Serveurs',add)+`<div class="notice teal">Classement commun à BOT ARK, DAYZ GATE et EXTINCTION ++ RSS. Un vote par connexion réseau/appareil et par serveur chaque jour.</div><div class="grid section-gap">${cards||'<div class="empty">Aucun serveur inscrit pour le moment.</div>'}</div>`;
+ return head('Top Serveurs',add)+`<div class="notice teal">Classement commun à BOT ARK, DAYZ GATE et EXTINCTION ++ RSS. Votes toutes les 2 heures. <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener">Ouvrir CMD Top Serveur ↗</a></div><div class="grid section-gap">${cards||'<div class="empty">Aucun serveur inscrit pour le moment.</div>'}</div>`;
 }
 
 function guideView(){return head('guide')+`<div class="grid two">${[['install','installIos','installAndroid','installPc','installMac'],['seasons','guideSeasons'],['quests','guideQuests'],['pass','guidePass'],['tickets','guideTickets'],['logs','guideLogs']].map(([title,...paragraphs])=>`<section class="guide-card"><h2>${esc(tr(title))}</h2>${paragraphs.map(p=>`<p>${esc(tr(p))}</p>`).join('')}${title==='install'?'<div class="section-gap">'+button('install','install','','primary')+'</div>':''}</section>`).join('')}</div>`}
@@ -468,7 +470,7 @@ async function boot(){page=location.hash.slice(1)||'home';try{const hash=locatio
 boot();
 
 let arkSwRegistration=null;
-const ARK_PWA_VERSION='29';
+const ARK_PWA_VERSION='30';
 const ARK_RELOAD_KEY='bot-ark-pwa-reloaded-'+ARK_PWA_VERSION;
 async function forceAppRefresh(){
  const buttons=['force-refresh','draft-refresh'].map(id=>document.getElementById(id)).filter(Boolean);
