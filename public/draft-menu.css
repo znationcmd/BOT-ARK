@@ -258,3 +258,8 @@ aside#sidebar{
   .draft-mobile-lang{display:block!important;visibility:visible!important;opacity:1!important;
     pointer-events:auto!important;z-index:100!important}
 }
+
+/* CMD full-circle branding v20261008: rail and mobile header */
+.guild-bubble,.guild-bubble:hover,.guild-bubble.active{border-radius:50%!important;overflow:hidden!important}
+.guild-bubble img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;border-radius:50%!important}
+.draft-mobile-header>img{width:48px!important;height:48px!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
