@@ -102,3 +102,48 @@ nav a.active{background:linear-gradient(90deg,rgba(83,226,211,.18),rgba(83,226,2
   will-change:transform,filter;
 }
 @media(prefers-reduced-motion:reduce){.ambient{animation:none!important;transform:none!important;inset:0!important}}
+
+
+/* CMD automatic device layout: desktop >=1181px, tablet 761-1180px, phone <=760px */
+html{max-width:100%;overflow-x:hidden}
+body{max-width:100%;overflow-x:hidden}
+img,video,canvas,svg{max-width:100%}
+.workspace,main,.topbar,.content,.panel,.card,.grid,.portal-grid{min-width:0}
+dialog{max-width:min(94vw,760px);max-height:90dvh;overflow-y:auto}
+@media(min-width:761px) and (max-width:1180px){
+  aside{width:204px;padding-inline:12px}
+  .workspace{margin-left:204px;height:100dvh}
+  .topbar{padding:14px 19px;gap:10px}
+  main{padding:20px 18px}
+  nav a{padding:11px 9px;gap:9px}
+  .grid:not(.stats){grid-template-columns:repeat(2,minmax(0,1fr))}
+  .portal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top-right{min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+  .top-right select{max-width:min(26vw,200px)}
+}
+@media(max-width:760px){
+  .workspace{height:100dvh;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .topbar{position:sticky;top:0;z-index:12;min-width:0;flex-wrap:wrap;align-items:center;background:rgba(5,17,25,.96)}
+  .top-right{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;max-width:100%;gap:6px}
+  .top-right select{max-width:150px;min-width:0}
+  main{width:100%;min-width:0}
+  .grid,.portal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid>* , .portal-grid>*{min-width:0}
+  input,textarea,select{max-width:100%}
+  input,select,textarea,button{font-size:16px}
+  .hero,.panel,.card{min-width:0;overflow-wrap:anywhere}
+  nav a,button,.account-button{touch-action:manipulation}
+  dialog{width:calc(100vw - 20px);max-height:calc(100dvh - 40px)}
+}
+@media(max-width:420px){
+  main{padding:14px 10px 40px}
+  .grid:not(.stats),.portal-grid{grid-template-columns:minmax(0,1fr)}
+  .grid.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top-right select{max-width:110px}
+  .brand img{max-width:48px}
+}
+@media(orientation:landscape) and (max-height:520px) and (max-width:920px){
+  .topbar{min-height:54px;padding:7px 13px}
+  .workspace{height:100dvh}
+  main{padding-top:12px}
+}
