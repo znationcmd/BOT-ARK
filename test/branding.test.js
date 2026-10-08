@@ -36,6 +36,12 @@ test('the brand logo fills its circle and the offline PWA has fresh locales',()=
   const css=read('public/styles.css');
   const sw=read('public/sw.js');
   assert.match(css,/\.brand img\{[^}]*object-fit:cover!important[^}]*border-radius:50%/);
-  assert.ok(sw.includes('/locales.js?v=22'));
-  assert.ok(sw.includes('bot-ark-shell-v32-corsu-20261008'));
+  const html=read('public/index.html');
+  const versions=['/app.js','/locales.js','/styles.css','/draft-menu.css'];
+  for(const asset of versions){
+    const match=html.match(new RegExp(asset.replace('.', '\\.')+'\\?v=\\d+'));
+    assert.ok(match,'Missing versioned HTML asset '+asset);
+    assert.ok(sw.includes(match[0]),'Offline cache uses an old asset '+asset);
+  }
+  assert.match(sw,/bot-ark-shell-v\d+-[\w-]+/);
 });
