@@ -229,3 +229,11 @@ aside#sidebar{
   .guild-rail{width:64px!important}
   aside#sidebar{left:64px!important;width:calc(100vw - 64px)!important}
 }
+
+/* CMD BOT ARK: visible, usable mobile language switch without covering the logo. */
+.draft-mobile-lang{display:none}
+@media(max-width:1100px){
+ .draft-mobile-header{position:fixed}
+ .draft-mobile-lang{display:block!important;position:absolute;top:calc(29px + env(safe-area-inset-top,0px));left:65px;width:76px!important;height:39px!important;min-height:39px!important;max-width:76px;border:1px solid #47cbbd77;border-radius:9px;background:#111e25!important;color:#e9fffa!important;text-align:center;text-align-last:center;font-size:13px!important;padding:3px 0!important;z-index:72}
+}
+@media(max-width:360px){.draft-mobile-lang{left:55px;width:70px!important}}
