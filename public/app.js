@@ -137,7 +137,7 @@ function loginView(){
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
     <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
-    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="https://cmd-top-serveur-production.up.railway.app/cmd-official.svg" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
+    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="/cmd-official.svg?v=20261008" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · Dashboard communautaire ARK</p>
     <div class="system-pill"><span></span>SYSTÈME ACTIF</div>
    </div>
@@ -186,7 +186,7 @@ function homeView(){
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
     <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
-    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="https://cmd-top-serveur-production.up.railway.app/cmd-official.svg" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
+    <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="/cmd-official.svg?v=20261008" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · ${esc(state.season?.name||tr('noSeason'))}</p>
     <div class="system-pill"><span></span>${me.bot?.ready?'BOT DISCORD CONNECTÉ':'SYSTÈME ACTIF'}</div>
    </div>
