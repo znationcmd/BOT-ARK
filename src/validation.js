@@ -1,5 +1,5 @@
 const {z}=require('zod');
-const languages=['fr','en','us','de','es','it','ru','ko','ja','zh'];
+const languages=['fr','en','us','de','es','it','ru','ko','ja','zh','co'];
 const id=z.string().regex(/^\d{5,22}$/);
 const text=(n=120)=>z.string().trim().min(1).max(n);
 const season=z.object({name:text(),starts_at:z.string().datetime({offset:true}),ends_at:z.string().datetime({offset:true}),xp_per_tier:z.coerce.number().int().min(25).max(10000),status:z.enum(['draft','published']).default('draft')}).refine(s=>new Date(s.ends_at)>new Date(s.starts_at),{message:'invalidDates'});
