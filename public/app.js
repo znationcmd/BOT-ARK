@@ -103,6 +103,23 @@ function inviteBotUrl(guildId=''){const base=me.bot?.inviteUrl||'';if(!base)retu
 async function installGuildFlow(id){const url=inviteBotUrl(id);if(!url||url==='#')return;const popup=window.open('about:blank','bot-ark-install');if(!popup){location.href=url;return}try{popup.opener=null;popup.location.href=url}catch{}const started=Date.now();const timer=setInterval(async()=>{if(Date.now()-started>120000){clearInterval(timer);return}try{const next=await api('/api/me'),ready=(next.guilds||[]).find(g=>String(g.id)===String(id)&&g.installed!==false);if(!ready)return;clearInterval(timer);selectedGuild=id;await api('/api/guild/select',{id});try{popup.location.href=location.origin+'/?installedGuild='+encodeURIComponent(id)+'#home'}catch{}location.hash='home';await refresh()}catch{}},1500)}
 function initials(name){return String(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?'}
 function ensureGuildVisualStyles(){if(document.getElementById('guild-visual-styles'))return;const s=document.createElement('style');s.id='guild-visual-styles';s.textContent='.guild-bubble.not-installed{opacity:.46;filter:grayscale(.72);border-style:dashed}.guild-bubble.not-installed:after{content:"+";position:absolute;right:0;bottom:0;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#252a2e;border:1px solid #111;color:#fff;font-size:17px;line-height:1;filter:none}.guild-bubble.not-installed:hover{opacity:.78;filter:grayscale(.35)}.server-context-icon.not-installed{opacity:.52;filter:grayscale(.72)}.guild-muted{opacity:.62}';document.head.appendChild(s)}
+function arkGuildIcon(g){
+ const value=String(g?.icon||"").trim(),id=String(g?.id||"");
+ if(/^https:\/\//i.test(value)||/^\/[^/]/.test(value)||/^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(value))return value;
+ if(/^\d{15,22}$/.test(id)&&/^[a-zA-Z0-9_]{5,60}$/.test(value))return "https://cdn.discordapp.com/icons/"+id+"/"+value+".webp?size=256";
+ return "";
+}
+function bindArkGuildLogoFallback(){
+ const handler=event=>{
+  const img=event.target;
+  if(!(img instanceof HTMLImageElement)||!img.closest(".guild-bubble,.server-context-icon"))return;
+  const frame=img.closest(".guild-bubble,.server-context-icon");
+  frame?.classList.add("ark-icon-unavailable");
+  img.hidden=true;
+ };
+ document.addEventListener("error",handler,true);
+}
+bindArkGuildLogoFallback();
 function renderGuildRail(){ensureGuildVisualStyles();
  const rail=$('#guild-rail'),context=$('#server-context'),strip=$('#mobile-guild-strip');if(!rail||!context)return;
  if(!me.loggedIn||!me.guilds?.length){
@@ -110,7 +127,7 @@ function renderGuildRail(){ensureGuildVisualStyles();
   if(strip){strip.innerHTML='';strip.hidden=true}
   return;
  }
- const bubbles=me.guilds.map(g=>{const installed=g.installed!==false;return `<button type="button" class="guild-bubble ${installed?'':'not-installed'} ${g.id===selectedGuild&&installed?'active':''}" data-guild="${esc(g.id)}" data-installed="${installed?'1':'0'}" title="${esc(g.name)}${installed?'':' · Bot non installé'}">${g.icon?`<img src="${esc(g.icon)}" alt="">`:`<span>${esc(initials(g.name))}</span>`}</button>`}).join('');
+ const bubbles=me.guilds.map(g=>{const installed=g.installed!==false;return `<button type="button" class="guild-bubble ${installed?'':'not-installed'} ${g.id===selectedGuild&&installed?'active':''}" data-guild="${esc(g.id)}" data-installed="${installed?'1':'0'}" title="${esc(g.name)}${installed?'':' · Bot non installé'}">${arkGuildIcon(g)?`<img src="${esc(arkGuildIcon(g))}" alt="${esc(g.name)}">`:""}<span class="ark-icon-fallback">${esc(initials(g.name))}</span></button>`}).join('');
  rail.innerHTML=bubbles;
  if(strip){strip.hidden=false;strip.innerHTML=`<strong>DISCORD</strong><div class="mobile-guild-scroll">${bubbles}</div>`}
  const current=me.guilds.find(g=>g.id===selectedGuild)||me.guilds[0];
@@ -462,7 +479,7 @@ function startAI(){if(aiReady)return;toast(tr('loading'));if(!worker){worker=new
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const b=e.target.closest('.ark-map-card[data-action]');if(!b)return;e.preventDefault();action(b.dataset.action,b.dataset.id).catch(err=>toast(tr(err.message),true))});
 $('#menu').onclick=()=>{document.body.classList.toggle('nav-open');$('#shade').hidden=!document.body.classList.contains('nav-open')};$('#shade').onclick=()=>{document.body.classList.remove('nav-open');$('#shade').hidden=true};
 $('#account').onclick=async()=>{if(demo){demo=false;selectedGuild='';me={loggedIn:false,role:null,guilds:[],bot:{}};state={};}else if(me.loggedIn){await api('/api/logout',{});selectedGuild='';}location.hash='home';await refresh()};
-$('#language').onchange=async e=>{language=e.target.value;localStorage.setItem('bot-ark-language',language);if(me.loggedIn&&!demo)await api('/api/language',{language}).catch(()=>{});if(demo)state=demoState();await render()};$('#guild-select').onchange=async e=>{selectedGuild=e.target.value;await api('/api/guild/select',{id:selectedGuild});await refresh()};
+$('#language').onchange=e=>{const next=String(e.target.value||'fr');if(!L.languages.includes(next))return;language=next;localStorage.setItem('bot-ark-language',next);const mobile=document.getElementById('mobile-language');if(mobile)mobile.value=next;if(demo)state=demoState();render().catch(err=>toast(tr(err.message),true));if(me.loggedIn&&!demo)api('/api/language',{language:next}).catch(()=>{});};$('#guild-select').onchange=async e=>{selectedGuild=e.target.value;await api('/api/guild/select',{id:selectedGuild});await refresh()};
 $('#install').onclick=()=>action('install').catch(err=>toast(tr(err.message),true));
 window.addEventListener('hashchange',()=>{const hash=location.hash.slice(1);if(hash.startsWith('login='))return;page=nav.some(([k])=>k===hash)?hash:'home';document.body.classList.remove('nav-open');$('#shade').hidden=true;render().catch(err=>toast(tr(err.message),true))});
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e});window.addEventListener('online',()=>refresh().catch(()=>{}));window.addEventListener('offline',()=>render());
@@ -511,4 +528,4 @@ document.getElementById('draft-menu-grid')?.addEventListener('click',()=>documen
 document.getElementById('draft-refresh')?.addEventListener('click',forceAppRefresh);
 
 // Keep the always-visible mobile language picker in sync with the main dashboard.
-document.getElementById('mobile-language')?.addEventListener('change',function(){const primary=document.getElementById('language');if(!primary)return;primary.value=this.value;primary.dispatchEvent(new Event('change',{bubbles:true}));});
+document.getElementById('mobile-language')?.addEventListener('change',function(){const primary=document.getElementById('language');if(primary){primary.value=this.value;primary.dispatchEvent(new Event('change',{bubbles:true}));}else{language=this.value;localStorage.setItem('bot-ark-language',language);render().catch(()=>{});}});
