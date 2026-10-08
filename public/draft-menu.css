@@ -263,3 +263,33 @@ aside#sidebar{
 .guild-bubble,.guild-bubble:hover,.guild-bubble.active{border-radius:50%!important;overflow:hidden!important}
 .guild-bubble img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;border-radius:50%!important}
 .draft-mobile-header>img{width:48px!important;height:48px!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
+
+/* 2026-10-08 CMD BOT ARK: fill circular Discord badges; show initial fallback for broken icons. */
+.guild-bubble,.server-context-icon{
+  position:relative!important;border-radius:50%!important;
+  overflow:hidden!important;isolation:isolate;
+}
+.guild-bubble>img,.server-context-icon>img{
+  position:absolute!important;inset:0!important;
+  display:block!important;width:100%!important;height:100%!important;
+  max-width:none!important;max-height:none!important;margin:0!important;
+  object-fit:cover!important;object-position:center!important;
+  border-radius:50%!important;z-index:2!important;
+}
+.guild-bubble>img[hidden],.server-context-icon>img[hidden]{display:none!important}
+.guild-bubble>.ark-icon-fallback,.server-context-icon>.ark-icon-fallback{
+  display:grid!important;place-items:center!important;position:absolute!important;
+  inset:0!important;width:100%!important;height:100%!important;
+  border-radius:50%!important;background:linear-gradient(140deg,#343354,#141823)!important;
+  color:#fff!important;font-weight:850!important;font-size:15px!important;z-index:1!important;
+}
+.guild-bubble.ark-icon-unavailable>img,.server-context-icon.ark-icon-unavailable>img{display:none!important}
+@media(max-width:1100px){
+  .draft-mobile-lang{
+    left:65px!important;width:94px!important;min-width:94px!important;
+    max-width:94px!important;z-index:100!important;
+    border:1px solid #55c9c0!important;color:#fff!important;
+    opacity:1!important;visibility:visible!important;pointer-events:auto!important;
+  }
+}
+@media(max-width:360px){.draft-mobile-lang{left:55px!important;width:83px!important;min-width:83px!important}}
