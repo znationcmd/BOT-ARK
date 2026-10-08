@@ -487,7 +487,7 @@ async function boot(){page=location.hash.slice(1)||'home';try{const hash=locatio
 boot();
 
 let arkSwRegistration=null;
-const ARK_PWA_VERSION='30';
+const ARK_PWA_VERSION='33';
 const ARK_RELOAD_KEY='bot-ark-pwa-reloaded-'+ARK_PWA_VERSION;
 async function forceAppRefresh(){
  const buttons=['force-refresh','draft-refresh'].map(id=>document.getElementById(id)).filter(Boolean);
