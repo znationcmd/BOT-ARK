@@ -92,8 +92,8 @@ function navigation(){
  $('#nav').innerHTML=navHtml;
  $('#install').textContent='↓ '+tr('install');
  $('#account').textContent=demo?tr('login'):me.loggedIn?tr('logout'):tr('login');
- $('#language').value=language;$('#page-title').textContent=labelFor(page);
- document.documentElement.lang=language;document.title=`BOT ARK · ${labelFor(page)}`;
+ $('#language').value=language;const ml=$('#mobile-language');if(ml)ml.value=language;$('#page-title').textContent=labelFor(page);
+ document.documentElement.lang=language;document.title=`CMD BOT ARK · ${labelFor(page)}`;
  const select=$('#guild-select');select.hidden=!me.loggedIn||!me.guilds.length;
  if(!select.hidden){select.innerHTML=me.guilds.filter(g=>g.installed!==false).map(g=>`<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');select.value=selectedGuild}
  renderGuildRail();
@@ -136,7 +136,7 @@ function loginView(){
    <div class="portal-center">
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
-    <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <h1 class="modmap-title"><span>◢</span> CMD BOT ARK <span>◤</span></h1>
     <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="/cmd-official.svg?v=20261008" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · Dashboard communautaire ARK</p>
     <div class="system-pill"><span></span>SYSTÈME ACTIF</div>
@@ -185,7 +185,7 @@ function homeView(){
    <div class="portal-center">
     <div class="modmap-kicker">ARK: SURVIVAL ASCENDED</div>
     <img class="modmap-logo" src="/icon-512.png?v=11" alt="BOT ARK">
-    <h1 class="modmap-title"><span>◢</span> BOT ARK <span>◤</span></h1>
+    <h1 class="modmap-title"><span>◢</span> CMD BOT ARK <span>◤</span></h1>
     <a href="https://cmd-top-serveur-production.up.railway.app/" target="_blank" rel="noopener" title="CMD Officiel · Propriétaire du réseau" style="display:inline-flex;align-items:center;gap:7px;margin:8px auto 0;padding:6px 10px;border:1px solid #8b5cf666;border-radius:999px;background:#8b5cf618;color:#e9d5ff;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.6px"><img src="/cmd-official.svg?v=20261008" alt="CMD" style="width:22px;height:22px">CMD OFFICIEL</a>
     <p class="modmap-subtitle">VALHALLA EXTINCTION · ${esc(state.season?.name||tr('noSeason'))}</p>
     <div class="system-pill"><span></span>${me.bot?.ready?'BOT DISCORD CONNECTÉ':'SYSTÈME ACTIF'}</div>
@@ -348,7 +348,7 @@ async function moduleView(key){
  return head(mod.label||moduleLabels[key])+`<div class="grid two"><section class="panel"><div class="panel-head"><h2>${esc(mod.label||moduleLabels[key])}</h2><span class="pill ${mod.enabled?'teal':''}">${mod.enabled?'ACTIF':'INACTIF'}</span></div><form id="module-config-form" data-key="${esc(key)}"><div class="form-grid"><label class="field"><span>État</span><select name="enabled"><option value="true" ${mod.enabled?'selected':''}>Activé</option><option value="false" ${!mod.enabled?'selected':''}>Désactivé</option></select></label><label class="field"><span>Salon Discord choisi par le propriétaire</span><select name="channelId">${opts}</select></label><label class="field wide"><span>Configuration avancée JSON</span><textarea name="configJson" rows="14">${esc(cfg)}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Enregistrer le module</button></div></form><p class="notice section-gap">${esc(notes[key]||'Le propriétaire choisit le salon et les options de ce module.')}</p>${key==='tempvoice'?`<div class="notice"><b>Vocaux disponibles :</b> ${voiceChannels.map(x=>esc(x.name)+' ('+esc(x.id)+')').join(' · ')||'aucun'}<br><b>Catégories :</b> ${categories.map(x=>esc(x.name)+' ('+esc(x.id)+')').join(' · ')||'aucune'}</div>`:''}</section><section class="panel"><h2>Historique</h2><div class="stack">${(payload.records||[]).slice(0,50).map(r=>`<div class="log-line"><span class="muted">${esc(date(r.created_at))}</span><br><code>${esc(JSON.stringify(r.data||{}))}</code></div>`).join('')||empty()}</div></section></div>`;
 }
 
-async function settingsView(){let config={language,staff_role_id:'',ticket_category_id:'',audit_channel_id:'',nitrado_service_id:'',nitrado_log_path:''};if(selectedGuild&&!demo)config={...config,...await api('/api/settings')};return head('settings')+`<div class="stack">${me.role==='owner'||demo?setupDiscord()+panel('community',`<form id="guild-form"><div class="form-grid">${field('guildId','id')}${field('name','name')}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('addGuild'))}</button></div></form>`):''}${selectedGuild||demo?panel('settings',`<form id="settings-form"><div class="form-grid">${field('language','language','text',config.language,L.languages.map(l=>({value:l,label:({fr:'Français',en:'English',us:'🇺🇸 English (US)',de:'Deutsch',es:'Español',it:'Italiano',ru:'Русский',ko:'🇰🇷 한국어',ja:'🇯🇵 日本語',zh:'🇨🇳 中文'})[l]})))}${field('staffRole','staff_role_id','text',config.staff_role_id)}${field('ticketCategory','ticket_category_id','text',config.ticket_category_id)}${field('auditChannel','audit_channel_id','text',config.audit_channel_id)}</div><div class="section-gap"><h3>${esc(tr('nitrado'))}</h3></div><div class="form-grid section-gap">${field('nitradoToken','nitrado_token','password')}${field('serviceId','nitrado_service_id','text',config.nitrado_service_id)}${field('logPath','nitrado_log_path','text',config.nitrado_log_path,null,true)}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('save'))}</button></div></form>`)+panel('webhook',`<p class="muted">${esc(tr('logNotice'))}</p><div class="section-gap">${button('newSecret','webhook','','ghost',true)}</div>`):''}</div>`}
+async function settingsView(){let config={language,staff_role_id:'',ticket_category_id:'',audit_channel_id:'',nitrado_service_id:'',nitrado_log_path:''};if(selectedGuild&&!demo)config={...config,...await api('/api/settings')};return head('settings')+`<div class="stack">${me.role==='owner'||demo?setupDiscord()+panel('community',`<form id="guild-form"><div class="form-grid">${field('guildId','id')}${field('name','name')}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('addGuild'))}</button></div></form>`):''}${selectedGuild||demo?panel('settings',`<form id="settings-form"><div class="form-grid">${field('language','language','text',config.language,L.languages.map(l=>({value:l,label:({fr:'Français',en:'English',us:'🇺🇸 English (US)',de:'Deutsch',es:'Español',it:'Italiano',ru:'Русский',ko:'🇰🇷 한국어',ja:'🇯🇵 日本語',zh:'🇨🇳 中文',co:'🏴 Corsu'})[l]})))}${field('staffRole','staff_role_id','text',config.staff_role_id)}${field('ticketCategory','ticket_category_id','text',config.ticket_category_id)}${field('auditChannel','audit_channel_id','text',config.audit_channel_id)}</div><div class="section-gap"><h3>${esc(tr('nitrado'))}</h3></div><div class="form-grid section-gap">${field('nitradoToken','nitrado_token','password')}${field('serviceId','nitrado_service_id','text',config.nitrado_service_id)}${field('logPath','nitrado_log_path','text',config.nitrado_log_path,null,true)}</div><div class="form-actions"><button class="primary" ${demo?'disabled':''}>${esc(tr('save'))}</button></div></form>`)+panel('webhook',`<p class="muted">${esc(tr('logNotice'))}</p><div class="section-gap">${button('newSecret','webhook','','ghost',true)}</div>`):''}</div>`}
 
 
 async function premiumView(){
@@ -509,3 +509,6 @@ document.getElementById('draft-menu-left')?.addEventListener('click',()=>documen
 document.getElementById('draft-menu-grid')?.addEventListener('click',()=>document.getElementById('menu')?.click());
 
 document.getElementById('draft-refresh')?.addEventListener('click',forceAppRefresh);
+
+// Keep the always-visible mobile language picker in sync with the main dashboard.
+document.getElementById('mobile-language')?.addEventListener('change',function(){const primary=document.getElementById('language');if(!primary)return;primary.value=this.value;primary.dispatchEvent(new Event('change',{bubbles:true}));});
