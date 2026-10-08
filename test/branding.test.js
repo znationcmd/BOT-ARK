@@ -27,7 +27,7 @@ test('language dropdowns work on phone and desktop',()=>{
   assert.match(html,/id="language"/);
   assert.match(html,/id="mobile-language"/);
   assert.match(html,/<option value="co">/);
-  assert.ok(app.includes("$('#language').onchange=async e=>"));
+  assert.match(app,/\$\('#language'\)\.onchange=(?:async )?e=>/);
   assert.ok(app.includes("document.getElementById('mobile-language')?.addEventListener('change'"));
   assert.ok(app.includes("if(ml)ml.value=language"));
 });
