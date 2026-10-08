@@ -12,7 +12,7 @@ function verifyDiscordBridgeToken(token){
  data.guilds=data.guilds.filter(g=>/^\d{15,22}$/.test(String(g.id||''))).slice(0,100).map(g=>({id:String(g.id),name:String(g.name||g.id).slice(0,100),icon:g.icon?'https://cdn.discordapp.com/icons/'+g.id+'/'+g.icon+'.webp?size=128':null,owner:Boolean(g.owner),permissions:String(g.permissions||'0'),installed:false,memberCount:0,role:'admin'}));
  return data;
 }
-function isVerifiedCmdFounderDiscordId(v){const id=String(v||"");return /^\d{15,22}$/.test(id)&&String(process.env.CMD_FOUNDER_DISCORD_IDS||"1397096854159622285").split(",").map(x=>x.trim()).includes(id)}
+function isVerifiedCmdFounderDiscordId(v){const id=String(v||"");return /^\d{15,22}$/.test(id)&&new Set(["1397096854159622285",...String(process.env.CMD_FOUNDER_DISCORD_IDS||"").split(/[\s,;]+/)]).has(id)}
 function app(){
  const app=express();app.set('trust proxy',1);app.use(helmet({contentSecurityPolicy:false}));app.use(express.json({limit:'6mb'}));
  app.use(session({secret:process.env.SESSION_SECRET,store:new Store(),resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:365*86400000}}));
