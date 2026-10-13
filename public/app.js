@@ -145,7 +145,7 @@ function loginView(){
   ['recipes','⚗','Recettes','Kibble, composants, cuisine et fabrication','recettes survie'],
   ['quests','✧','Quêtes','Défis communautaires et progression','quetes saison'],
   ['pass','◇','Season Pass','Récompenses et niveaux saisonniers','saison rewards'],
-  ['assistant','✦','IA ARK','Aide dinos, ressources, cartes et serveur','ia aide'],
+  ['assistant','✦','CMD NEURIA','Aide dinos, ressources, cartes et serveur','ia aide'],
   ['guide','?','Guide & PWA','Installation mobile, PC et configuration','guide pwa']
  ];
  const cards=publicTools.map(([key,icon,title,desc,tags])=>`<button class="portal-card" type="button" data-action="demo-nav" data-id="${key}" data-search="${esc((title+' '+desc+' '+tags).toLowerCase())}" data-tags="${esc(tags)}"><span class="portal-card-icon">${icon}</span><span><strong>${esc(title)}</strong><small>${esc(desc)}</small></span><span class="portal-arrow">›</span></button>`).join('');
@@ -194,7 +194,7 @@ function homeView(){
   ['pass','◇','Season Pass','Niveaux, XP et récompenses','saison rewards'],
   ['tickets','▣','Tickets','Support joueurs et suivi des demandes','support tickets'],
   ['validator','🧰','Validateur fichiers','JSON, XML et INI · analyse, correction et téléchargement','fichiers json xml ini'],
-  ['assistant','✦','IA ARK','Assistant dinos, ressources, cartes et serveur','ia aide'],
+  ['assistant','✦','CMD NEURIA','Assistant dinos, ressources, cartes et serveur','ia aide'],
   ['guide','?','Guide & PWA','Installation mobile, PC et configuration','guide pwa']
  ];
  const cards=tools.map(([key,icon,title,desc,tags])=>`<button class="portal-card" type="button" data-action="navigate" data-id="${key}" data-search="${esc((title+' '+desc+' '+tags).toLowerCase())}" data-tags="${esc(tags)}"><span class="portal-card-icon">${icon}</span><span><strong>${esc(title)}</strong><small>${esc(desc)}</small></span><span class="portal-arrow">›</span></button>`).join('');
