@@ -159,7 +159,7 @@ function loginView(){
     <div class="system-pill"><span></span>SYSTÈME ACTIF</div>
    </div>
    <div class="modmap-toolbar">
-    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="saison">Saison</option><option value="ia">IA</option><option value="guide">Guide</option></select></label>
+    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="saison">Saison</option><option value="ia">CMD NEURIA</option><option value="guide">Guide</option></select></label>
     <label class="portal-search"><span>⌕</span><input id="portal-search" autocomplete="off" placeholder="Rechercher un outil…"></label>
    </div>
    <div id="portal-grid" class="portal-grid">${cards}</div>
@@ -208,7 +208,7 @@ function homeView(){
     <div class="system-pill"><span></span>${me.bot?.ready?'BOT DISCORD CONNECTÉ':'SYSTÈME ACTIF'}</div>
    </div>
    <div class="modmap-toolbar">
-    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="rp">RP</option><option value="saison">Saison</option><option value="support">Support</option><option value="ia">IA</option></select></label>
+    <label class="portal-tags"><span>🏷️</span><select id="portal-tag" aria-label="Tags"><option value="">Tous les tags</option><option value="cartes">Cartes</option><option value="survie">Survie</option><option value="rp">RP</option><option value="saison">Saison</option><option value="support">Support</option><option value="ia">CMD NEURIA</option></select></label>
     <label class="portal-search"><span>⌕</span><input id="portal-search" autocomplete="off" placeholder="Rechercher un outil…"></label>
    </div>
    <div id="portal-grid" class="portal-grid">${cards}</div>
