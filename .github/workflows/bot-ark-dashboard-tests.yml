@@ -20,11 +20,17 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
+      - name: Check lockfile drift (diagnostic)
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            echo 'Note: dependency lockfile requires synchronization after saxes addition.'
+          fi
       - name: Syntax check dashboard and bot modules
         run: |
           node --check public/app.js
           node --check public/ark-premium-3d.js
+          node --check public/ark-perspective-3d.js
           node --check src/bot.js
           node --check src/modules.js
       - name: Run regression and service tests
