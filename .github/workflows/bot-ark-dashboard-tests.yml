@@ -1,0 +1,31 @@
+name: BOT ARK dashboard validation
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bot-ark-dashboard-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Syntax check dashboard and bot modules
+        run: |
+          node --check public/app.js
+          node --check public/ark-premium-3d.js
+          node --check src/bot.js
+          node --check src/modules.js
+      - name: Run regression and service tests
+        run: npm test
