@@ -55,6 +55,11 @@ input{min-height:42px;border:1px solid #604984;border-radius:10px;background:#20
 .auto input{width:20px;height:20px;min-height:20px}
 .more{width:100%;min-height:44px;border:1px solid #775ea1;border-radius:10px;background:#23233d;color:#fff;padding:11px}
 .counter{font-size:12px;color:#d5cbe7;margin:0}
+.alphabet{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;flex:none}
+.letter{background:#231935;color:#ece3ff;border:1px solid #735c9b;border-radius:8px;min-width:0;min-height:39px;font-weight:750;padding:3px}
+.letter[aria-pressed="true"]{border-color:#70dafa;background:#403064;box-shadow:0 0 0 1px #70dafa55}
+.letter:focus-visible{outline:2px solid #fff;outline-offset:1px}
+
 `;
  const trigger=document.createElement("button");trigger.type="button";trigger.className="trigger";
  trigger.setAttribute("aria-label","Choisir une langue ou un dialecte");
@@ -72,6 +77,17 @@ input{min-height:42px;border:1px solid #604984;border-radius:10px;background:#20
  automatic.append(checkbox,autoLabel);
  const autoInfo=document.createElement("p");autoInfo.className="muted";
  const counter=document.createElement("p");counter.className="counter";
+ const alphabet=document.createElement("div");alphabet.className="alphabet";
+ alphabet.setAttribute("role","group");alphabet.setAttribute("aria-label","Langues classées par lettre de A à Z");
+ const letters=["Toutes",..."ABCDEFGHIJKLMNOPQRSTUVWXYZ","#"];let letter="";
+ for(const key of letters){
+  const item=document.createElement("button");item.type="button";item.className="letter";item.dataset.letter=key;
+  item.textContent=key==="Toutes"?"Tout":key==="#"?"Autres":key;
+  item.setAttribute("aria-label",key==="Toutes"?"Toutes les langues":key==="#"?"Langues à écriture non latine et autres": "Langues commençant par "+key);
+  item.setAttribute("aria-pressed",String(key==="Toutes"));
+  alphabet.append(item);
+ }
+ function showLetters(){alphabet.querySelectorAll("[data-letter]").forEach(el=>el.setAttribute("aria-pressed",String((el.dataset.letter==="Toutes"?"":el.dataset.letter)===letter)))}
  const results=document.createElement("div");results.className="results";results.setAttribute("role","group");
  const custom=document.createElement("input");custom.type="text";custom.maxLength=64;
  custom.placeholder="Code régional personnel : gsw-CH-x-bern";
@@ -84,7 +100,7 @@ input{min-height:42px;border:1px solid #604984;border-radius:10px;background:#20
  summary.textContent="Autres dialectes (code régional facultatif)";
  const customControls=document.createElement("div");customControls.append(custom,applyCustom);
  customRow.append(summary,customControls);
- panel.append(head,automatic,autoInfo,query,counter,results,customRow,note,msg);
+ panel.append(head,automatic,autoInfo,query,alphabet,counter,results,customRow,note,msg);
  shadow.append(style,panel,trigger);
  function fallback(code){
   const base=String(code).split("-")[0].toLowerCase();
@@ -144,7 +160,12 @@ input{min-height:42px;border:1px solid #604984;border-radius:10px;background:#20
   results.replaceChildren();shown=0;matched=[];
   if(!status.languages){results.textContent="Chargement du catalogue…";return}
   const queryText=query.value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  if(!queryText){
+  if(!queryText&&letter){
+   for(const [code,name] of status.languages){
+    const first=name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").charAt(0).toUpperCase();
+    if(letter==="#"?!/^[A-Z]$/.test(first):first===letter)matched.push([code,name]);
+   }
+  }else if(!queryText){
    const byCode=new Map(status.languages),seen=new Set();
    const priority=[existing(),"fr","en","de","es","it","co","gsw-CH","gsw-CH-x-bern","gsw-CH-x-zueri","gsw-CH-x-basel","gsw-CH-x-wallis","gsw-CH-x-luzern"];
    for(const code of priority)if(byCode.has(code)&&!seen.has(code)){matched.push([code,byCode.get(code)]);seen.add(code)}
@@ -174,7 +195,13 @@ input{min-height:42px;border:1px solid #604984;border-radius:10px;background:#20
  async function toggle(){panel.hidden=!panel.hidden;trigger.setAttribute("aria-expanded",String(!panel.hidden));if(!panel.hidden){query.focus();await load();}}
  trigger.addEventListener("click",toggle);
  close.addEventListener("click",()=>{panel.hidden=true;trigger.setAttribute("aria-expanded","false");trigger.focus()});
- query.addEventListener("input",render);
+ query.addEventListener("input",()=>{letter="";showLetters();render()});
+ alphabet.addEventListener("click",event=>{
+  const button=event.target.closest("button[data-letter]");
+  if(!button||!alphabet.contains(button))return;
+  letter=button.dataset.letter==="Toutes"?"":button.dataset.letter;
+  query.value="";showLetters();render();
+ });
  checkbox.addEventListener("change",()=>{if(checkbox.checked)save(detect(),"Langue de l'appareil","auto");else save(existing(),"Langue actuelle","manual")});
  applyCustom.addEventListener("click",()=>save(custom.value,custom.value));
  custom.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();save(custom.value,custom.value)}});
