@@ -1,0 +1,52 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+test('entire dashboard loads premium 3D teal-copper assets',()=>{
+ const html=read('public/index.html'),sw=read('public/sw.js');
+ const css=read('public/ark-premium-3d.css'),js=read('public/ark-premium-3d.js');
+ assert.match(html,/ark-premium-3d\.css\?v=20261018-1/);
+ assert.match(html,/ark-premium-3d\.js\?v=20261018-1/);
+ assert.match(sw,/ark-premium-3d\.css\?v=20261018-1/);
+ assert.match(sw,/ark-premium-3d\.js\?v=20261018-1/);
+ assert.match(css,/--ark-teal:#53e2d3/);
+ assert.match(css,/--ark-copper:#e5a165/);
+ assert.match(css,/#nav \.draft-nav-group a/);
+ assert.match(css,/\.guild-bubble/);
+ assert.match(css,/\.hero/);
+ assert.match(css,/\[role="button"\]/);
+ assert.match(css,/\.ark-3d-lit/);
+ assert.match(css,/prefers-reduced-motion/);
+ assert.doesNotThrow(()=>new vm.Script(js));
+});
+test('glow attaches to existing buttons without overriding click actions',()=>{
+ const js=read('public/ark-premium-3d.js');
+ assert.match(js,/document\.addEventListener\('click'/);
+ assert.match(js,/capture:true/);
+ assert.match(js,/classList\.add\('ark-3d-lit'\)/);
+ assert.doesNotMatch(js,/preventDefault\(|stopPropagation\(|\.onclick\s*=/);
+});
+test('voice module removed from navigation, registered modules and bot subscriptions',()=>{
+ const ui=read('public/app.js'),modules=read('src/modules.js'),bot=read('src/bot.js');
+ assert.doesNotMatch(ui,/tempvoice|voiceChannels|Vocaux disponibles|Salons vocaux temporaires/);
+ assert.doesNotMatch(modules,/tempvoice|handleVoice|Salon vocal temporaire/);
+ assert.doesNotMatch(bot,/GuildVoiceStates|voiceStateUpdate|handleVoice/);
+ assert.match(ui,/const navGroups=/);
+ assert.match(ui,/const moduleKeys=/);
+ assert.match(modules,/function validateKey/);
+});
+test('mobile and desktop keep current theme, layout and controls',()=>{
+ const html=read('public/index.html'),oldCss=read('public/styles.css'),draft=read('public/draft-menu.css');
+ assert.match(html,/id="mobile-language"/);
+ assert.match(html,/id="language"/);
+ assert.match(html,/id="sidebar"/);
+ assert.match(html,/id="main"/);
+ assert.match(html,/id="guild-rail"/);
+ assert.match(oldCss,/--teal:#53e2d3/);
+ assert.match(oldCss,/--copper:#e5a165/);
+ assert.match(oldCss,/background\.webp/);
+ assert.match(draft,/\.draft-mobile-header/);
+});
