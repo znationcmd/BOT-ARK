@@ -1,0 +1,100 @@
+/* BOT ARK — genuine CSS 3D tilt, not a fake rendered image.
+   Hover parallax on desktop; permissioned device-orientation on phones.
+   Uses existing dark petrol / turquoise / copper palette. */
+:root{
+  --ark-view-x:0deg;
+  --ark-view-y:0deg;
+  --ark-float-x:0px;
+  --ark-float-y:0px;
+}
+#main{perspective:1800px;perspective-origin:50% 35%}
+#main .ark-tilt-surface{
+  --ark-card-x:var(--ark-view-x);
+  --ark-card-y:var(--ark-view-y);
+  position:relative;
+  transform-origin:center center;
+  transform-style:preserve-3d;
+  transform:perspective(1500px) rotateX(var(--ark-card-x)) rotateY(var(--ark-card-y));
+  transition:transform 320ms cubic-bezier(.18,.8,.3,1),box-shadow .25s,border-color .25s!important;
+  backface-visibility:hidden;
+  will-change:auto;
+}
+#main .ark-tilt-surface.ark-tilt-pointing{
+  transition:transform 90ms linear,box-shadow .2s!important;
+  will-change:transform;
+  border-color:rgba(83,226,211,.65);
+  box-shadow:0 18px 39px rgba(0,0,0,.56),0 0 22px rgba(83,226,211,.17),
+    inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+#main .ark-tilt-surface::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:radial-gradient(circle at var(--ark-shine-x,50%) var(--ark-shine-y,0%),rgba(185,255,246,.155),transparent 58%);
+  opacity:0;
+  transition:opacity .3s ease;
+  transform:translateZ(1px);
+}
+#main .ark-tilt-surface.ark-tilt-pointing::after{opacity:1}
+#main .ark-tilt-surface > :is(h1,h2,h3,.panel-head,.hero-content,.stats,.card-head,.section-head){
+  transform:translateZ(12px);
+  transform-style:preserve-3d;
+}
+#main .ark-tilt-surface :is(button,.btn,[role="button"]){
+  transform:translateZ(12px);
+  transform-style:preserve-3d;
+}
+#main .ark-tilt-surface :is(button,.btn,[role="button"]):where(:hover,:focus-visible,.ark-3d-lit){
+  transform:translateZ(17px) translateY(-2px);
+}
+#main .ark-tilt-surface :is(button,.btn,[role="button"]):active{
+  transform:translateZ(4px) translateY(2px) scale(.985);
+}
+.ambient{
+  transform:translate3d(var(--ark-float-x),var(--ark-float-y),0) scale(1.035);
+  transition:transform .25s ease-out;
+  will-change:transform;
+}
+.ark-motion-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:clamp(.72rem,.8vw,.85rem)!important;
+  white-space:nowrap;
+  min-height:44px;
+  border:1px solid rgba(83,226,211,.62)!important;
+  border-radius:12px!important;
+  background:linear-gradient(155deg,#234951,#143038)!important;
+  color:#e3ffff!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.2),0 7px 16px rgba(0,0,0,.3)!important;
+}
+.ark-motion-toggle[aria-pressed="true"]{
+  border-color:#53e2d3!important;
+  box-shadow:0 0 0 1px #53e2d3,0 0 18px rgba(83,226,211,.46),inset 0 1px rgba(255,255,255,.2)!important;
+}
+@media(max-width:1100px){
+  .ark-motion-toggle{
+    position:fixed!important;top:calc(90px + env(safe-area-inset-top,0px));
+    right:12px;z-index:68;
+    padding:8px 11px!important;
+    box-shadow:0 5px 21px rgba(0,0,0,.55)!important;
+  }
+}
+@media(max-width:600px){
+  #main{perspective:2200px}
+  #main .ark-tilt-surface{transform:perspective(1800px) rotateX(var(--ark-card-x)) rotateY(var(--ark-card-y))}
+  #main .ark-tilt-surface > :is(h1,h2,h3,.panel-head,.hero-content,.stats,.card-head,.section-head){transform:none}
+  #main .ark-tilt-surface :is(button,.btn,[role="button"]){transform:translateZ(5px)}
+  .ambient{transform:translate3d(var(--ark-float-x),var(--ark-float-y),0) scale(1.015)}
+}
+@media(prefers-reduced-motion:reduce){
+  .ambient{transform:none!important;transition:none!important;will-change:auto!important}
+  #main .ark-tilt-surface,#main .ark-tilt-surface.ark-tilt-pointing{
+    transform:none!important;transition:none!important;will-change:auto!important;
+  }
+  #main .ark-tilt-surface::after{display:none!important}
+  #main .ark-tilt-surface :is(button,.btn,[role="button"]){transform:none!important}
+}
