@@ -27,7 +27,7 @@
  }
  function updateMouse(e){
   if(reduced.matches||mobileEnabled||!fine.matches)return;
-  const el=e.target?.closest?.(S);
+  const el=e.target?.closest?.(".ark-tilt-surface");
   const card=el?.closest?.("#main")?el:null;
   if(current!==card){resetCard(current);current=card}
   if(!card)return;
