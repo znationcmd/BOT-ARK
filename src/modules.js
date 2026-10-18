@@ -10,7 +10,6 @@ const MODULES={
  levels:{label:'Niveaux',channel:true},
  invitations:{label:'Invitations',channel:true},
  reputation:{label:'Réputation',channel:true},
- tempvoice:{label:'Salons vocaux temporaires',channel:false},
  infinity:{label:"Route de l’Infini",channel:true},
  suggestions:{label:'Suggestions',channel:true},
  secureroles:{label:'Rôles sécurisés',channel:true},
@@ -150,25 +149,6 @@ async function handleReaction(client,reaction,user){
  const sent=await send(client,g,'starboard',{content:`${emoji} **Starboard** · ${message.author}\n${message.content||'(message sans texte)'}\n${message.url}`});
  if(sent.sent)await record(g,'starboard',message.author?.id||'',{messageId:message.id,sourceChannelId:message.channelId,starCount:reaction.count});
 }
-async function handleVoice(client,oldState,newState){
- const g=newState.guild?.id||oldState.guild?.id;if(!g)return;
- const setting=await get(g,'tempvoice');if(!setting.enabled)return;
- const hub=String(setting.config?.hubChannelId||'');
- if(newState.channelId&&newState.channelId===hub&&newState.member){
-   const guild=newState.guild;
-   const nameTpl=String(setting.config?.name||'Salon de {user}');
-   const ch=await guild.channels.create({name:nameTpl.replaceAll('{user}',newState.member.displayName).slice(0,90),type:2,parent:setting.config?.categoryId||undefined,reason:'Salon vocal temporaire'});
-   await newState.setChannel(ch).catch(()=>{});
-   await record(g,'tempvoice',newState.member.id,{channelId:ch.id,ownerId:newState.member.id});
- }
- if(oldState.channelId&&oldState.channelId!==hub){
-   const rec=await db.one("SELECT * FROM ark_module_records WHERE guild_id=$1 AND module_key='tempvoice' AND data->>'channelId'=$2 ORDER BY created_at DESC LIMIT 1",[g,oldState.channelId]);
-   if(rec){
-     const ch=oldState.guild.channels.cache.get(oldState.channelId);
-     if(ch&&ch.members?.size===0){await ch.delete('Salon vocal temporaire vide').catch(()=>{});await db.query('DELETE FROM ark_module_records WHERE id=$1',[rec.id])}
-   }
- }
-}
 async function handleRecurring(client){
  if(!client?.isReady())return;
  const rows=await db.all("SELECT * FROM ark_module_settings WHERE module_key='recurring' AND enabled=true");
@@ -242,4 +222,4 @@ async function handle(i,client){
  const sent=await send(client,g,'snippets',{content:String(sn.content||'').slice(0,1900)});
  return reply(sent.sent?'✅ Snippet envoyé dans le salon configuré.':'⚠️ Aucun salon Snippets configuré.');
 }
-module.exports={MODULES,get,list,save,record,records,send,configuredChannel,handleJoin,handleLeave,handleMessage,handleReaction,handleVoice,handleRecurring,handleBirthdays,tick,commands,handle};
+module.exports={MODULES,get,list,save,record,records,send,configuredChannel,handleJoin,handleLeave,handleMessage,handleReaction,handleRecurring,handleBirthdays,tick,commands,handle};
