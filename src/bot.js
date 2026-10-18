@@ -152,7 +152,7 @@ async function start(credentials){if(connecting)fail('working');connecting=true;
  if(!token){const row=await db.one("SELECT value FROM ark_system WHERE key='discord'");if(row){const data=JSON.parse(vault.decrypt(row.value));token=data.token;id=data.clientId;}}
  if(!token||!id){lastError=null;return status()}
  const rest=new REST({version:'10'}).setToken(token);const app=await rest.get(Routes.oauth2CurrentApplication());if(app.id!==id)fail('discordError');
- const intents=[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildMessageReactions,GatewayIntentBits.GuildVoiceStates];
+ const intents=[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildMessageReactions];
  if(process.env.DISCORD_MESSAGE_CONTENT==='true')intents.push(GatewayIntentBits.MessageContent);
  if(process.env.DISCORD_GUILD_MEMBERS==='true')intents.push(GatewayIntentBits.GuildMembers);
  candidate=new Client({intents,partials:[Partials.Message,Partials.Channel,Partials.Reaction]});candidate.on('error',e=>console.error('Discord :',e.code||e.name));candidate.on('shardDisconnect',()=>{lastError='discordDisconnected';console.warn('Discord déconnecté — discord.js tente la reconnexion automatiquement')});candidate.on('shardResume',()=>{lastError=null;console.log('BOT ARK reconnecté à Discord')});candidate.on('invalidated',()=>{lastError='discordInvalidated';console.error('Session Discord invalidée — redémarrage de la connexion');setTimeout(()=>start().catch(()=>{}),5000).unref()});
@@ -160,7 +160,6 @@ async function start(credentials){if(connecting)fail('working');connecting=true;
  candidate.on('guildCreate',g=>s.guild(g.id,g.name).catch(()=>{}));
  candidate.on('guildMemberAdd',m=>modules.handleJoin(candidate,m).catch(e=>console.error('Arrivée Discord :',e.code||e.name)));
  candidate.on('guildMemberRemove',m=>modules.handleLeave(candidate,m).catch(e=>console.error('Départ Discord :',e.code||e.name)));
- candidate.on('voiceStateUpdate',(a,b)=>modules.handleVoice(candidate,a,b).catch(e=>console.error('Vocal temporaire :',e.code||e.name)));
  candidate.on('messageReactionAdd',(r,u)=>modules.handleReaction(candidate,r,u).catch(e=>console.error('Starboard :',e.code||e.name)));
  candidate.on('messageCreate',async m=>{if(m.author.bot||!m.guildId)return;try{await modules.handleMessage(candidate,m);const ticket=await db.one("SELECT * FROM ark_tickets WHERE channel_id=$1 AND status='open'",[m.channelId]);if(!ticket)return;const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[m.guildId]))?.config||{};const staff=isManager(m.guild,m.member)||m.member.roles.cache.has(config.staff_role_id);await s.ticketMessage(m.guildId,m.author.id,m.author.username,ticket.id,m.content,staff,m.id)}catch(e){console.error('Message Discord :',e.code||e.name)}});
  const ready=new Promise((resolve,reject)=>{readyTimeout=setTimeout(()=>reject(Error('timeout')),20000);candidate.once('clientReady',()=>{clearTimeout(readyTimeout);resolve()});});
