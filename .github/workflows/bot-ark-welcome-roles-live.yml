@@ -1,0 +1,33 @@
+name: BOT ARK - live welcome role UI check
+on:
+  push:
+    paths: [".github/workflows/bot-ark-welcome-roles-live.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify real dashboard, versioned UI and role authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://bot-ark-production.up.railway.app"
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/ark-health -w '%{http_code}' "$base/health" || true)
+            [ "$code" = "200" ] && break
+            sleep 7
+          done
+          test "$code" = "200"
+          curl -fsS --max-time 30 "$base/app.js?v=34" -o /tmp/ark-ui.js
+          grep -q 'joinNotifyRoleId' /tmp/ark-ui.js
+          grep -q 'leaveNotifyRoleId' /tmp/ark-ui.js
+          grep -q 'welcomeRoleId' /tmp/ark-ui.js
+          curl -fsS --max-time 30 "$base/sw.js" -o /tmp/ark-sw.js
+          grep -q 'bot-ark-shell-v36-welcome-roles-20261019' /tmp/ark-sw.js
+          role_code=$(curl -sS --max-time 30 -o /tmp/ark-role -w '%{http_code}' "$base/api/discord/roles")
+          test "$role_code" = "401"
+          grep -q 'unauthorized' /tmp/ark-role
+          echo "BOT ARK role fields online; role list protected; PWA cache refreshed"
