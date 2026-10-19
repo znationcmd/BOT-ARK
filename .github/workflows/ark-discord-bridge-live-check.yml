@@ -26,6 +26,11 @@ jobs:
           echo "Unauthenticated Discord bridge: HTTP $code"
           cat /tmp/ark-bridge-response
           echo
-          [ "$code" = "401" ] || { echo "Bridge misconfigured (503) or login allowed without token"; exit 1; }
-          grep -q 'unauthorized' /tmp/ark-bridge-response
-          echo "Bridge config present; unsigned requests safely rejected"
+          [ "$code" = "303" ] || { echo "Expected safe redirect to the login error page (not raw JSON)"; exit 1; }
+          headers=$(curl --silent --show-error --max-time 30 -D - -o /dev/null "$url/auth/discord-bridge")
+          echo "$headers" | grep -qi "location: /auth/discord-error?reason=unauthorized"
+          code=$(curl --silent --show-error --max-time 30 -o /tmp/ark-oauth-error-page -w '%{http_code}' "$url/auth/discord-error?reason=unauthorized")
+          [ "$code" = "401" ] || { echo "Invalid link page must reject with 401"; exit 1; }
+          grep -q "Réessayer Discord" /tmp/ark-oauth-error-page
+          grep -q "Retour au Dashboard" /tmp/ark-oauth-error-page
+          echo "Bridge configured, invalid tokens blocked, and safe 3D-brand recovery page displayed"
