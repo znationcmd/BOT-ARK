@@ -1,0 +1,23 @@
+name: BOT ARK - vérification CMD NEURIA réelle
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bot-ark-neuria-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  live-neuria:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Vérifier la disponibilité du service CMD NEURIA
+        run: |
+          curl -fsS --retry 2 --max-time 40 https://cmd-ai-cpu-web-production.up.railway.app/health > /tmp/neuria-health.json
+          node -e 'const d=require("/tmp/neuria-health.json"); console.log("NEURIA service:",d.app,"engineConfigured:",d.engineConfigured,"tokenResolved:",!d.engineTokenReferenceUnresolved); if(!d.ok||d.app!=="CMD NEURIA"||!d.engineConfigured||d.engineTokenReferenceUnresolved)process.exit(1)'
+      - name: Vérifier la réponse véritable depuis BOT ARK
+        run: |
+          status=$(curl -sS --max-time 115 -o /tmp/bot-ark-neuria.json -w '%{http_code}' -X POST 'https://bot-ark-production.up.railway.app/api/ai' -H 'Content-Type: application/json' --data '{"message":"Bonjour, comment puis-je utiliser BOT ARK ?"}')
+          echo "BOT ARK CMD NEURIA HTTP status: $status"
+          node -e 'const fs=require("node:fs");const d=JSON.parse(fs.readFileSync("/tmp/bot-ark-neuria.json","utf8"));console.log("Service:",d.service,"Engine:",d.engine,"Reply received:",Boolean(d.reply));if(d.error)console.log("Service error:",d.error);if(d.service!=="CMD NEURIA"||d.engine!=="external-llm"||!d.reply?.trim())process.exit(1)'
