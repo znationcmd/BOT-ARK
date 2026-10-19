@@ -54,6 +54,18 @@ async function save(guildId,key,input){
   if(id&&!/^\d{15,25}$/.test(id)){const e=new Error('ID salon Discord invalide');e.code='invalidInput';throw e}
   config.channelId=id;
  }
+ if(key==='welcome'){
+  for(const k of ['joinNotifyRoleId','leaveNotifyRoleId']){
+   if(config[k]===undefined)continue;
+   const id=String(config[k]||'').trim();
+   if(id&&!/^\d{15,25}$/.test(id)){const e=new Error('ID de rôle Discord invalide');e.code='invalidInput';throw e}
+   config[k]=id;
+  }
+  if(config.roleIds!==undefined){
+   if(!Array.isArray(config.roleIds)||config.roleIds.length>20||config.roleIds.some(id=>!/^\d{15,25}$/.test(String(id)))){const e=new Error('Rôles automatiques invalides (maximum 20)');e.code='invalidInput';throw e}
+   config.roleIds=[...new Set(config.roleIds.map(String))];
+  }
+ }
  const row=await db.one(`INSERT INTO ark_module_settings(guild_id,module_key,enabled,config) VALUES($1,$2,$3,$4)
  ON CONFLICT(guild_id,module_key) DO UPDATE SET enabled=EXCLUDED.enabled,config=EXCLUDED.config,updated_at=NOW()
  RETURNING *`,[guildId,key,enabled,config]);
@@ -88,17 +100,36 @@ async function send(client,guildId,key,payload){
  const message=await ch.send(safe);
  return{sent:true,channelId:ch.id,messageId:message.id};
 }
+function roleAlert(member,raw){
+ const id=String(raw||'');
+ if(!/^\d{15,25}$/.test(id)||id===member.guild.id)return null;
+ const role=member.guild.roles.cache.get(id);
+ return role&&!role.managed?role:null;
+}
 async function handleJoin(client,member){
  const setting=await get(member.guild.id,'welcome');if(!setting.enabled)return;
  const tpl=String(setting.config?.joinMessage||'Bienvenue {user} sur **{server}** !');
- await send(client,member.guild.id,'welcome',tpl.replaceAll('{user}',member.toString()).replaceAll('{server}',member.guild.name));
- const roles=Array.isArray(setting.config?.roleIds)?setting.config.roleIds:[];
- for(const id of roles){const role=member.guild.roles.cache.get(String(id));if(role&&!role.managed)await member.roles.add(role).catch(()=>{})}
+ const role=roleAlert(member,setting.config?.joinNotifyRoleId);
+ const welcomeText=tpl.replaceAll('{user}',member.toString()).replaceAll('{server}',member.guild.name);
+ try{
+  await send(client,member.guild.id,'welcome',{content:(role?'<@&'+role.id+'> ':'')+welcomeText,allowedMentions:{parse:[],users:[member.id],roles:role?[role.id]:[]}});
+ }catch(e){console.warn('BOT ARK · annonce arrivée indisponible :',e.code||e.name)}
+ const ids=Array.isArray(setting.config?.roleIds)?setting.config.roleIds.slice(0,20):[];
+ if(!ids.length)return;
+ const me=await member.guild.members.fetchMe().catch(()=>null);
+ if(!me?.permissions?.has('ManageRoles'))return;
+ for(const id of ids){
+  const role=member.guild.roles.cache.get(String(id));
+  if(!role||role.id===member.guild.id||role.managed||role.position>=me.roles.highest.position)continue;
+  if(['Administrator','ManageGuild','ManageRoles','BanMembers','KickMembers','ManageWebhooks','ModerateMembers'].some(flag=>role.permissions.has(flag)))continue;
+  try{await member.roles.add(role,'CMD BOT ARK · rôle arrivée')}catch(e){console.warn('BOT ARK · attribution rôle arrivée refusée :',e.code||e.name)}
+ }
 }
 async function handleLeave(client,member){
  const setting=await get(member.guild.id,'welcome');if(!setting.enabled)return;
  const tpl=String(setting.config?.leaveMessage||'{user} a quitté **{server}**.');
- await send(client,member.guild.id,'welcome',tpl.replaceAll('{user}',member.user?.tag||member.id).replaceAll('{server}',member.guild.name));
+ const role=roleAlert(member,setting.config?.leaveNotifyRoleId);
+ await send(client,member.guild.id,'welcome',{content:(role?'<@&'+role.id+'> ':'')+tpl.replaceAll('{user}',member.user?.tag||member.id).replaceAll('{server}',member.guild.name),allowedMentions:{parse:[],roles:role?[role.id]:[]}});
 }
 async function handleMessage(client,message){
  if(!message.guild||message.author?.bot)return;
