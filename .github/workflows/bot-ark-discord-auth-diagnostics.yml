@@ -1,0 +1,41 @@
+name: BOT ARK - safe Discord login diagnostic
+on:
+  push:
+    paths: [".github/workflows/bot-ark-discord-auth-diagnostics.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe public authentication routes without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import urllib.request,urllib.error,urllib.parse,json
+          base="https://bot-ark-production.up.railway.app"
+          for path in ["/health","/api/me","/auth/discord-bridge?token=invalid", "/auth/discord-account"]:
+            req=urllib.request.Request(base+path,headers={"User-Agent":"BOT-ARK-Auth-Diagnostics/1.0","Accept":"application/json"})
+            opener=urllib.request.build_opener(urllib.request.HTTPHandler())
+            try:
+              with opener.open(req,timeout=30) as response:
+                code=response.status
+                target=response.headers.get("Location","")
+                data=response.read(1400)
+            except urllib.error.HTTPError as e:
+              code=e.code;target=e.headers.get("Location","");data=e.read(1400)
+            except Exception as e:
+              print("ROUTE",path,"ERR",type(e).__name__);continue
+            label=""
+            if path.startswith("/auth/discord-bridge"):
+              try:label=json.loads(data.decode("utf8")).get("error","")
+              except:label="non_json"
+            if path.startswith("/auth/discord-account"):
+              u=urllib.parse.urlparse(target)
+              print("ROUTE",path,"STATUS",code,"REDIRECT_HOST",u.hostname,"REDIRECT_PATH",u.path)
+            else:
+              print("ROUTE",path,"STATUS",code,"ERROR",label)
+          PY
