@@ -17,8 +17,13 @@ test('real Discord roles endpoint and phone-friendly fields wired to correct mod
  assert.match(bot,/P\.ManageRoles/);
  for(const term of ['welcomeRoleId','joinNotifyRoleId','leaveNotifyRoleId','rolesLoaded','roleCheckboxes'])assert.ok(ui.includes(term),term);
  assert.match(ui,/config\.roleIds=fd\.getAll\('welcomeRoleId'\)/);
- assert.match(index,/app\.js\?v=34/);
- assert.match(sw,/bot-ark-shell-v36-welcome-roles-20261019/);
+ const appAsset=index.match(/\/app\.js\?v=\d+/)?.[0];
+ const localeAsset=index.match(/\/locales\.js\?v=\d+/)?.[0];
+ assert.ok(appAsset,'versioned dashboard JS');
+ assert.ok(localeAsset,'versioned dashboard translations');
+ assert.ok(sw.includes(appAsset),'PWA must cache the currently referenced app JS');
+ assert.ok(sw.includes(localeAsset),'PWA must cache the currently referenced translation bundle');
+ assert.match(sw,/bot-ark-shell-v\d+-/);
 });
 test('role IDs are validated and unchanged configuration preserved',async()=>{
  const old={channelId:CHANNEL,roleIds:[NEW,NEW],joinNotifyRoleId:ALERT_JOIN,leaveNotifyRoleId:ALERT_LEAVE,joinMessage:'Bonjour {user}',leaveMessage:'Au revoir {user}'};
