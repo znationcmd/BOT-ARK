@@ -1,0 +1,31 @@
+name: BOT ARK - Discord connection bridge live verification
+on:
+  push:
+    paths: [".github/workflows/ark-discord-bridge-live-check.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify bridge is configured and invalid requests safely rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://bot-ark-production.up.railway.app"
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl --silent --show-error --location --max-time 20 -o /tmp/ark-health -w '%{http_code}' "$url/health" || true)
+            echo "Health attempt $attempt: $code"
+            if [ "$code" = "200" ]; then break; fi
+            sleep 8
+          done
+          [ "$code" = "200" ] || { echo "Bot service not healthy"; exit 1; }
+          code=$(curl --silent --show-error --max-time 30 -o /tmp/ark-bridge-response -w '%{http_code}' "$url/auth/discord-bridge")
+          echo "Unauthenticated Discord bridge: HTTP $code"
+          cat /tmp/ark-bridge-response
+          echo
+          [ "$code" = "401" ] || { echo "Bridge misconfigured (503) or login allowed without token"; exit 1; }
+          grep -q 'unauthorized' /tmp/ark-bridge-response
+          echo "Bridge config present; unsigned requests safely rejected"
