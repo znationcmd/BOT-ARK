@@ -43,6 +43,7 @@ function app(){
  route('get','/api/modules/:key',login,scope,async(req,res)=>res.json({module:await modules.get(req.g,req.params.key),records:await modules.records(req.g,req.params.key,100)}));
  route('post','/api/modules/:key',login,owner,scope,async(req,res)=>res.json(await modules.save(req.g,req.params.key,req.body||{})));
  route('get','/api/discord/channels',login,scope,async(req,res)=>res.json(await bot.guildChannels(req.g)));
+ route('get','/api/discord/roles',login,scope,async(req,res)=>res.json(await bot.guildRoles(req.g)));
  route('post','/api/seasons',login,staff,scope,async(req,res)=>res.json(await s.createSeason(req.g,actor(req),req.body)));
  route('post','/api/seasons/:id/publish',login,staff,scope,async(req,res)=>{await s.publishSeason(req.g,actor(req),req.params.id);res.json({ok:true})});
  route('post','/api/seasons/:id/archive',login,staff,scope,async(req,res)=>{await s.archiveSeason(req.g,actor(req),req.params.id);res.json({ok:true})});
