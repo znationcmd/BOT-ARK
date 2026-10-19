@@ -337,7 +337,7 @@ async function moduleView(key){
  const textChannels=channels.filter(ch=>ch.type===0||ch.type===5);
  const opts=['<option value="">— Aucun salon —</option>'].concat(textChannels.map(ch=>'<option value="'+esc(ch.id)+'" '+(String(mod.config?.channelId||'')===String(ch.id)?'selected':'')+'># '+esc(ch.name)+'</option>')).join('');
  const welcomeRoles=key==='welcome'&&!demo?await api('/api/discord/roles').catch(()=>null):key==='welcome'?[]:null;
- const rolesLoaded=Array.isArray(welcomeRoles);
+ const rolesLoaded=Array.isArray(welcomeRoles)&&welcomeRoles.length>0;
  const savedRoleIds=Array.isArray(mod.config?.roleIds)?mod.config.roleIds.map(String):[];
  const roleCheckboxes=rolesLoaded&&welcomeRoles.length?welcomeRoles.map(role=>{
   const chosen=savedRoleIds.includes(String(role.id));
