@@ -116,6 +116,22 @@ async function accessibleGuilds(userId){
   return out.sort((a,b)=>a.name.localeCompare(b.name,'fr'));
 }
 async function guildChannels(guildId){if(!client?.isReady())return[];const guild=await client.guilds.fetch(guildId);await guild.channels.fetch();return [...guild.channels.cache.values()].filter(ch=>[ChannelType.GuildText,ChannelType.GuildAnnouncement,ChannelType.GuildVoice,ChannelType.GuildCategory].includes(ch.type)).map(ch=>({id:ch.id,name:ch.name,type:ch.type,parentId:ch.parentId||null})).sort((a,b)=>a.type-b.type||a.name.localeCompare(b.name,'fr'))}
+async function guildRoles(guildId){
+ if(!client?.isReady())fail('botNotReady',503);
+ const guild=await client.guilds.fetch(String(guildId));
+ const botMember=await guild.members.fetchMe().catch(()=>null);
+ await guild.roles.fetch();
+ const canManage=Boolean(botMember?.permissions?.has(P.ManageRoles));
+ return [...guild.roles.cache.values()]
+  .filter(role=>role.id!==guild.id)
+  .sort((a,b)=>b.position-a.position||a.name.localeCompare(b.name,'fr'))
+  .map(role=>{
+   const dangerous=[P.Administrator,P.ManageGuild,P.ManageRoles,P.BanMembers,P.KickMembers,P.ManageWebhooks,P.ModerateMembers];
+   const privileged=dangerous.some(perm=>role.permissions.has(perm));
+   const assignable=Boolean(canManage&&botMember&&role.position<botMember.roles.highest.position&&!role.managed&&!privileged);
+   return {id:role.id,name:role.name,color:role.hexColor,mentionable:role.mentionable,assignable,managed:role.managed};
+  });
+}
 function isManager(guild,member){return guild.ownerId===member.id||member.permissions.has(P.Administrator)||member.permissions.has(P.ManageGuild)}
 async function verify(g,user,role){if(!client?.isReady())fail('botNotReady');const guild=await client.guilds.fetch(g);const member=await guild.members.fetch(user);if(role==='admin'&&!isManager(guild,member))fail('forbidden',403);return true}
 async function createTicketChannel(ticket){if(!client?.isReady())return ticket;return db.tx(async()=>{ticket=await db.one('SELECT * FROM ark_tickets WHERE id=$1 FOR UPDATE',[ticket.id]);if(!ticket||ticket.channel_id||ticket.status!=='open')return ticket;const guild=await client.guilds.fetch(ticket.guild_id);const config=(await db.one('SELECT config FROM ark_guilds WHERE id=$1',[ticket.guild_id]))?.config||{};
@@ -174,4 +190,4 @@ let auditRunning=false;
 async function flushAudit(){if(auditRunning||!client?.isReady())return;auditRunning=true;try{const rows=await db.all("SELECT a.*,g.config->>'audit_channel_id' AS channel FROM ark_audit a JOIN ark_guilds g ON g.id=a.guild_id WHERE a.discord_sent=false AND a.created_at>NOW()-INTERVAL '1 day' AND COALESCE(g.config->>'audit_channel_id','')<>'' ORDER BY a.id LIMIT 20");for(const row of rows){try{const channel=await client.channels.fetch(row.channel);if(channel?.guildId!==row.guild_id||!channel.isTextBased())continue;await channel.send({content:`**BOT ARK · ${row.action}**\n${row.actor} · ${new Date(row.created_at).toISOString()}`,allowedMentions:{parse:[]}});await db.query('UPDATE ark_audit SET discord_sent=true WHERE id=$1',[row.id]);}catch(e){console.error('Journal Discord :',e.code||e.name)}}}finally{auditRunning=false}}
 const auditTimer=setInterval(()=>flushAudit().catch(()=>{}),60000);auditTimer.unref();
 const moduleTimer=setInterval(()=>modules.tick(client).catch(()=>{}),60000);moduleTimer.unref();
-module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminMessages,adminWebhooks,adminExtras,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
+module.exports={start,status,installedGuilds,accessibleGuilds,guildAccess,guildChannels,guildRoles,verify,createTicketChannel,closeTicketChannel,mirrorMessage,deliverRole,commands,adminGuilds,adminStructure,adminMessages,adminWebhooks,adminExtras,adminAction,stop:()=>{clearInterval(auditTimer);clearInterval(moduleTimer);client?.destroy()}};
