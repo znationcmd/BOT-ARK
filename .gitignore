@@ -3,3 +3,16 @@ node_modules/
 *.log
 playwright-report/
 test-results/
+
+# CMD — fichiers de travail locaux (jamais de suppression de fichiers suivis)
+.env.*
+!.env.example
+coverage/
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+*.sqlite
+*.sqlite3
+*.db
