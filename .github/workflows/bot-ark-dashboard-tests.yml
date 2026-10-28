@@ -33,5 +33,6 @@ jobs:
           node --check public/ark-perspective-3d.js
           node --check src/bot.js
           node --check src/modules.js
+          node --check test/api.test.js
       - name: Run regression and service tests
         run: npm test
